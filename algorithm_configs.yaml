@@ -1,3 +1,4 @@
 blurring_kernel_size: 5
 structuring_kernel_size: 3
 max_rectangle_area_increment_ratio: 1.25
+max_distance_between_rectangles: 50

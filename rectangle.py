@@ -98,3 +98,24 @@ class Rectangle(BaseModel):
         rect_width = random.randint(MIN_RECTANGLE_WIDTH, max_width - 1)
         rect_height = random.randint(MIN_RECTANGLE_HEIGHT, max_height - 1)
         return Rectangle(x=x, y=y, height=rect_height, width=rect_width)
+
+    def distance(self, other: Self) -> int:
+        """
+        Compute the distance between this rectangle and another rectangle.
+
+        Args:
+            other (Rectangle): The other rectangle.
+
+        Returns:
+            int: The distance between the two rectangles.
+        """
+        # Check if rectangles overlap
+        if self.overlap(other):
+            return 0
+
+        # Find the closest pair of edges
+        dx = max(abs(other.x - (self.x + self.width)), abs(self.x - (other.x + other.width)))
+        dy = max(abs(other.y - (self.y + self.height)), abs(self.y - (other.y + other.height)))
+
+        # Return distance
+        return min(dx, dy)
