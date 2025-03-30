@@ -1,3 +1,5 @@
+import random
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -58,7 +60,7 @@ def generate_data():
     image = image.astype(np.float64)
 
     # Add a random number of black (0-valued) rectangles without overlap.
-    num_rectangles = np.random.randint(5, 15)
+    num_rectangles = random.randint(5, 15)
     placed_rectangles = generate_rectangles(num_rectangles)
 
     for curr_rectangle in placed_rectangles:
