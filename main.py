@@ -15,7 +15,6 @@ with open("data_configs.yaml") as f:
     MIN_RECTANGLE_HEIGHT = configs["min_rectangle_height"]
     MIN_RECTANGLE_WIDTH = configs["min_rectangle_width"]
     MIN_RECTANGLE_AREA = configs["min_rectangle_area"]
-    MAX_RECTANGLE_AREA = configs["max_rectangle_area"]
     NOISE_STD = configs["noise_std"]
     SIGNAL_TO_NOISE_RATIO = configs["signal_to_noise_ratio"]
     BACKGROUND_MEAN = configs["background_mean"]
@@ -59,8 +58,6 @@ class Rectangle(BaseModel):
 
     @model_validator(mode='after')
     def validate_area(self):
-        if self.area() > MAX_RECTANGLE_AREA:
-            raise ValueError("Area of rectangle must be less than MAX_RECTANGLE_AREA")
         if self.area() < MIN_RECTANGLE_AREA:
             raise ValueError("Area of rectangle must be greater than MIN_RECTANGLE_AREA")
         return self

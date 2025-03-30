@@ -9,4 +9,3 @@ min_rectangle_avg: 10
 min_rectangle_width: 10
 min_rectangle_height: 10
 min_rectangle_area: 200
-max_rectangle_area: 1048576
