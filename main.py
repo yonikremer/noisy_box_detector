@@ -11,7 +11,12 @@ from rectangle import Rectangle
 MAX_UINT8 = 255
 
 
-def generate_rectangles(num_rectangles):
+def generate_rectangles(num_rectangles: int) -> list[Rectangle]:
+    """
+    Generate a list of random non-overlapping rectangles
+    :param num_rectangles: the number of rectangles
+    :return: a list of non-overlapping rectangles
+    """
     placed_rectangles: list[Rectangle] = []
     for _ in range(num_rectangles):
         while True:
