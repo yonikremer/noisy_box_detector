@@ -7,26 +7,13 @@ from rectangle import Rectangle
 
 MAX_UINT8 = 255
 
-with open("signal_configs.yaml") as f:
-    configs = yaml.load(f, Loader=yaml.FullLoader)
-    NOISE_STD = configs["noise_std"]
-    SIGNAL_TO_NOISE_RATIO = configs["signal_to_noise_ratio"]
-    BACKGROUND_MEAN = configs["background_mean"]
-
-RECTANGLE_MEAN = BACKGROUND_MEAN * SIGNAL_TO_NOISE_RATIO
-RECTANGLE_STD = NOISE_STD * SIGNAL_TO_NOISE_RATIO
-MIN_RECTANGLE_AVG = RECTANGLE_MEAN - RECTANGLE_STD / 2
-
-with open("data_configs.yaml") as f:
-    configs = yaml.load(f, Loader=yaml.FullLoader)
-    IMAGE_WIDTH = configs["image_width"]
-    IMAGE_HEIGHT = configs["image_height"]
-
 with open("algorithm_configs.yaml") as f:
-    configs = yaml.load(f, Loader=yaml.FullLoader)
-    BLURRING_KERNEL_SIZE = configs["blurring_kernel_size"]
-    STRUCTURING_KERNEL_SIZE = configs["structuring_kernel_size"]
-    MAX_RECTANGLE_AREA_INCREMENT_RATIO = configs["max_rectangle_area_increment_ratio"]
+    algorithm_configs = yaml.load(f, Loader=yaml.FullLoader)
+    BLURRING_KERNEL_SIZE = algorithm_configs["blurring_kernel_size"]
+    STRUCTURING_KERNEL_SIZE = algorithm_configs["structuring_kernel_size"]
+    MAX_RECTANGLE_AREA_INCREMENT_RATIO = algorithm_configs[
+        "max_rectangle_area_increment_ratio"
+    ]
 
 
 def generate_rectangles(num_rectangles):
@@ -51,6 +38,20 @@ def generate_rectangles(num_rectangles):
 def generate_data():
     # The data are greyscale images with a noisy background and black rectangles
     # of different shapes, all parallel to the image's axes.
+    with open("signal_configs.yaml") as signal_configs_file:
+        configs = yaml.load(signal_configs_file, Loader=yaml.FullLoader)
+        NOISE_STD = configs["noise_std"]
+        SIGNAL_TO_NOISE_RATIO = configs["signal_to_noise_ratio"]
+        BACKGROUND_MEAN = configs["background_mean"]
+
+    RECTANGLE_MEAN = BACKGROUND_MEAN * SIGNAL_TO_NOISE_RATIO
+    RECTANGLE_STD = NOISE_STD * SIGNAL_TO_NOISE_RATIO
+
+    with open("data_configs.yaml") as data_configs_file:
+        data_configs = yaml.load(data_configs_file, Loader=yaml.FullLoader)
+        IMAGE_WIDTH = data_configs["image_width"]
+        IMAGE_HEIGHT = data_configs["image_height"]
+
     image = np.random.normal(
         loc=BACKGROUND_MEAN, scale=NOISE_STD, size=(IMAGE_HEIGHT, IMAGE_WIDTH)
     )
@@ -159,11 +160,11 @@ def preprocess(image):
     thresh, binary_image = cv2.threshold(
         blurred_normalised, 0, MAX_UINT8, cv2.THRESH_OTSU
     )
-    kernel = cv2.getStructuringElement(
+    STRUCTURING_ELEMENT_KERNEL = cv2.getStructuringElement(
         cv2.MORPH_RECT, (STRUCTURING_KERNEL_SIZE, STRUCTURING_KERNEL_SIZE)
     )
-    opened = cv2.morphologyEx(binary_image, cv2.MORPH_OPEN, kernel)
-    closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, kernel)
+    opened = cv2.morphologyEx(binary_image, cv2.MORPH_OPEN, STRUCTURING_ELEMENT_KERNEL)
+    closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, STRUCTURING_ELEMENT_KERNEL)
     return closed
 
 
