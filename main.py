@@ -20,9 +20,9 @@ with open("data_configs.yaml") as f:
     SIGNAL_TO_NOISE_RATIO = configs["signal_to_noise_ratio"]
     BACKGROUND_MEAN = configs["background_mean"]
 
-    RECTANGLE_MEAN = BACKGROUND_MEAN * SIGNAL_TO_NOISE_RATIO
-    RECTANGLE_STD = NOISE_STD * SIGNAL_TO_NOISE_RATIO
-    MIN_RECTANGLE_AVG = RECTANGLE_MEAN - RECTANGLE_STD / 2
+RECTANGLE_MEAN = BACKGROUND_MEAN * SIGNAL_TO_NOISE_RATIO
+RECTANGLE_STD = NOISE_STD * SIGNAL_TO_NOISE_RATIO
+MIN_RECTANGLE_AVG = RECTANGLE_MEAN - RECTANGLE_STD / 2
 
 with open("algorithm_configs.yaml") as f:
     configs = yaml.load(f, Loader=yaml.FullLoader)
