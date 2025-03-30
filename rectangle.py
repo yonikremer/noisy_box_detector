@@ -92,7 +92,7 @@ class Rectangle(BaseModel):
     @classmethod
     def random(cls):
         rect_width = random.randint(MIN_RECTANGLE_WIDTH, IMAGE_WIDTH)
-        rect_height = random.randint(MIN_RECTANGLE_HEIGHT, IMAGE_HEIGHT)
+        rect_height = random.randint(MIN_RECTANGLE_HEIGHT, MAX_RECTANGLE_HEIGHT)
         max_x = IMAGE_WIDTH - rect_width
         max_y = IMAGE_HEIGHT - rect_height
         if max_x <= 0 or max_y <= 0:
