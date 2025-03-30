@@ -1,9 +1,11 @@
 import random
+from logging import debug
 
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import yaml
+from pydantic import ValidationError
 
 from rectangle import Rectangle
 
@@ -121,7 +123,12 @@ def merge_overlapping_rectangles(rect_list: list[Rectangle]) -> list[Rectangle]:
                 other = rect_list[j]
                 # If they overlap, merge them
                 if current.distance(other) <= MAX_DISTANCE_BETWEEN_RECTANGLES:
-                    merged = current.merge(other)
+                    try:
+                        merged = current.merge(other)
+                    except ValidationError as e:
+                        debug(f"Could not merge rectangles: {current} and {other}")
+                        debug(f"Error: {e}")
+                        continue
                     area_before_merge = current.area() + other.area()
                     area_increment_ratio = merged.area() / area_before_merge
                     if area_increment_ratio <= MAX_RECTANGLE_AREA_INCREMENT_RATIO:
