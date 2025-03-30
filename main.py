@@ -75,18 +75,14 @@ class Rectangle(BaseModel):
         return slice(self.y, self.max_y()), slice(self.x, self.max_x())
 
     def overlap(self, other: Self):
-        return not (self.max_x() <= other.x
-                    or other.max_x() <= self.x
-                    or self.max_y() <= other.y
-                    or other.max_y() <= self.y)
+        return not (self.max_x() <= other.x or other.max_x() <= self.x
+                    or self.max_y() <= other.y or other.max_y() <= self.y)
 
     def merge(self, other: Self):
         merged_x = min(self.x, other.x)
         merged_y = min(self.y, other.y)
-        merged_w = max(self.max_x(),
-                       other.max_x()) - merged_x
-        merged_h = max(self.max_y(),
-                       other.max_y()) - merged_y
+        merged_w = max(self.max_x(), other.max_x()) - merged_x
+        merged_h = max(self.max_y(), other.max_y()) - merged_y
         merged_rectangle = Rectangle(x=merged_x, y=merged_y, height=merged_h, width=merged_w)
         return merged_rectangle
 
@@ -94,7 +90,8 @@ class Rectangle(BaseModel):
         return hash((self.x, self.y, self.height, self.width))
 
     def plot(self, ax, color='red'):
-        rect = plt.Rectangle((self.x, self.y), self.width, self.height, linewidth=1, edgecolor=color, facecolor='none')
+        rect = plt.Rectangle((self.x, self.y),
+                             self.width, self.height, linewidth=1, edgecolor=color, facecolor='none')
         ax.add_patch(rect)
 
 
@@ -133,8 +130,7 @@ def generate_rectangles(num_rectangles):
 def generate_data():
     # The data are greyscale images with a noisy background and black rectangles
     # of different shapes, all parallel to the image's axes.
-    image = np.random.normal(loc=BACKGROUND_MEAN, scale=NOISE_STD,
-                             size=(IMAGE_HEIGHT, IMAGE_WIDTH))
+    image = np.random.normal(loc=BACKGROUND_MEAN, scale=NOISE_STD, size=(IMAGE_HEIGHT, IMAGE_WIDTH))
     image = image.astype(np.float64)
 
     # Add a random number of black (0-valued) rectangles without overlap.
