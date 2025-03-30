@@ -165,24 +165,12 @@ def main():
     plt.show()
 
 
-def contours_to_rectangles(contours, hierarchy):
-    filtered_contours = [cnt for i, cnt in enumerate(contours) if hierarchy[0][i][3] == -1]
-    rect_list = []
-    for cnt in filtered_contours:
-        x, y, width, height = cv2.boundingRect(cnt)
-        try:
-            found_rectangle = Rectangle(x=x, y=y, height=height, width=width)
-        except ValueError:
-            continue
-        rect_list.append(found_rectangle)
-
+def merge_overlapping_rectangles(rect_list: list[Rectangle]) -> list[Rectangle]:
     merged_occurred = True
-
     while merged_occurred:
         merged_occurred = False
         new_rectangles = []
         used = [False] * len(rect_list)
-
         for i in range(len(rect_list)):
             if used[i]:
                 continue
@@ -201,9 +189,21 @@ def contours_to_rectangles(contours, hierarchy):
                         used[j] = True
                         merged_occurred = True
             new_rectangles.append(current)
-
         rect_list = new_rectangles
+    return rect_list
 
+
+def contours_to_rectangles(contours, hierarchy):
+    filtered_contours = [cnt for i, cnt in enumerate(contours) if hierarchy[0][i][3] == -1]
+    rect_list = []
+    for cnt in filtered_contours:
+        x, y, width, height = cv2.boundingRect(cnt)
+        try:
+            found_rectangle = Rectangle(x=x, y=y, height=height, width=width)
+        except ValueError:
+            continue
+        rect_list.append(found_rectangle)
+    rect_list = merge_overlapping_rectangles(rect_list)
     return rect_list
 
 
