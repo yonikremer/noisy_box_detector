@@ -99,9 +99,6 @@ def main():
     for ground_truth_rectangle, computed_rectangle in itertools.product(ground_truth_rectangles, predicted_rectangles):
         if ground_truth_rectangle.overlap(computed_rectangle):
             current_intersection_area = ground_truth_rectangle.intersetion_area(computed_rectangle)
-            assert current_intersection_area > 0
-            assert current_intersection_area <= ground_truth_rectangle.area()
-            assert current_intersection_area <= computed_rectangle.area()
             total_intersection_area += current_intersection_area
             total_union_area += ground_truth_rectangle.area() + computed_rectangle.area() - current_intersection_area
 

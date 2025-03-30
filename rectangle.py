@@ -125,8 +125,14 @@ class Rectangle(BaseModel):
         :param other: Another rectangle
         :return: The area of the intersection between the two rectangles
         """
+        if not self.overlap(other):
+            return 0
         max_start_x = max(self.x, other.x)
         min_end_x = min(self.max_x(), other.max_x())
         max_start_y = max(self.y, other.y)
         min_end_y = min(self.max_y(), other.max_y())
-        return (min_end_x - max_start_x) * (min_end_y - max_start_y)
+        intersection_area = (min_end_x - max_start_x) * (min_end_y - max_start_y)
+        assert intersection_area >= 0
+        assert intersection_area <= self.area()
+        assert intersection_area <= other.area()
+        return intersection_area
