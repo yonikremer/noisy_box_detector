@@ -203,8 +203,8 @@ def preprocess(image):
     1. Blur the image
     2. Find the noise threshold
     3. Zero out the pixel less than the threshold
-    4. remove small noise points
-    5. fill small holes in rectangles
+    4. remove small noise points using Morphological opening
+    5. fill small holes in rectangles using Morphological closing
 
     :param image: a black and white image with noise low-valued background and high-valued rectangles
     :return: a less noisy version of the image
@@ -221,9 +221,7 @@ def preprocess(image):
     STRUCTURING_ELEMENT_KERNEL = cv2.getStructuringElement(
         cv2.MORPH_RECT, (STRUCTURING_KERNEL_SIZE, STRUCTURING_KERNEL_SIZE)
     )
-    # remove small noise points
     opened = cv2.morphologyEx(binary_image, cv2.MORPH_OPEN, STRUCTURING_ELEMENT_KERNEL)
-    # fill small holes in rectangles
     closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, STRUCTURING_ELEMENT_KERNEL)
     return closed
 
