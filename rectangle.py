@@ -95,8 +95,6 @@ class Rectangle(BaseModel):
         rect_height = random.randint(MIN_RECTANGLE_HEIGHT, MAX_RECTANGLE_HEIGHT)
         max_x = IMAGE_WIDTH - rect_width
         max_y = IMAGE_HEIGHT - rect_height
-        if max_x <= 0 or max_y <= 0:
-            raise ValueError
         x = random.randint(0, max_x)
         y = random.randint(0, max_y)
         return Rectangle(x=x, y=y, height=rect_height, width=rect_width)
