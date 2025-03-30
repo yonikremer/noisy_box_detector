@@ -91,10 +91,10 @@ class Rectangle(BaseModel):
 
     @classmethod
     def random(cls):
-        rect_width = random.randint(MIN_RECTANGLE_WIDTH, IMAGE_WIDTH)
-        rect_height = random.randint(MIN_RECTANGLE_HEIGHT, MAX_RECTANGLE_HEIGHT)
-        max_x = IMAGE_WIDTH - rect_width
-        max_y = IMAGE_HEIGHT - rect_height
-        x = random.randint(0, max_x)
-        y = random.randint(0, max_y)
+        x = random.randint(0, IMAGE_WIDTH)
+        y = random.randint(0, IMAGE_HEIGHT)
+        max_width = IMAGE_WIDTH - x
+        max_height = min(IMAGE_HEIGHT - y, MAX_RECTANGLE_HEIGHT)
+        rect_width = random.randint(MIN_RECTANGLE_WIDTH, max_width)
+        rect_height = random.randint(MIN_RECTANGLE_HEIGHT, max_height)
         return Rectangle(x=x, y=y, height=rect_height, width=rect_width)
