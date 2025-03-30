@@ -69,34 +69,23 @@ def generate_data():
         )
         image[curr_rectangle.slice] = rectangle_values
 
-    return image
+    return placed_rectangles, image
 
 
 def main():
-    image = generate_data()
+    ground_truth_rectangles, image = generate_data()
     fig, ax = plt.subplots()
     ax.imshow(image, cmap="binary", vmin=0, vmax=MAX_UINT8)
+    for ground_truth_rectangle in ground_truth_rectangles:
+        ground_truth_rectangle.plot(ax, color="green")
     clean = preprocess(image)
     contours, hierarchy = cv2.findContours(
         clean, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
-    former_rectangles = contours_to_rectangles(contours, hierarchy)
-
-    for found_rectangle in former_rectangles:
-        inside_rectangle = image[found_rectangle.slice]
-        mean = np.mean(inside_rectangle)
-        print(f"Rectangle mean: {mean}")
-        plotting_rectangle = plt.Rectangle(
-            (found_rectangle.x, found_rectangle.y),
-            found_rectangle.width,
-            found_rectangle.height,
-            linewidth=1,
-            edgecolor="red",
-            facecolor="none",
-        )
-        ax.add_patch(plotting_rectangle)
-
-    plt.title("Detected Rectangles")
+    predicted_rectangles = contours_to_rectangles(contours, hierarchy)
+    for predicted_rectangle in predicted_rectangles:
+        predicted_rectangle.plot(ax, color="red")
+    plt.title("Detected Rectangles (red) Compared to Ground Truth (green)")
     plt.show()
 
 
