@@ -3,7 +3,7 @@ from typing import Any
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field
 
 MAX_UINT8 = 255
 
@@ -25,46 +25,10 @@ STRUCTURING_KERNEL_SIZE = 3
 
 
 class Rectangle(BaseModel):
-    __slots__ = ['x', 'y', 'height', 'width']
-    x: int
-    y: int
-    height: int
-    width: int
-
-    def __init__(self, x, y, height, width, /, **data: Any):
-        super().__init__(**data)
-        self.x = x
-        self.y = y
-        self.height = height
-        self.width = width
-
-    @staticmethod
-    @field_validator('x')
-    def validate_x(value):
-        if value < 0 or value > IMAGE_WIDTH:
-            raise ValueError("x must be between 0 and IMAGE_WIDTH")
-        return value
-
-    @staticmethod
-    @field_validator('y')
-    def validate_y(value):
-        if value < 0 or value > IMAGE_HEIGHT:
-            raise ValueError("y must be between 0 and IMAGE_HEIGHT")
-        return value
-
-    @staticmethod
-    @field_validator('height')
-    def validate_height(value):
-        if value < MIN_RECTANGLE_HEIGHT or value > IMAGE_HEIGHT:
-            raise ValueError("height must be positive and less than IMAGE_HEIGHT")
-        return value
-
-    @staticmethod
-    @field_validator('width')
-    def validate_width(value):
-        if value < MIN_RECTANGLE_WIDTH or value > IMAGE_WIDTH:
-            raise ValueError("width must be positive and less than IMAGE_WIDTH")
-        return value
+    x: int = Field(ge=0, lt=IMAGE_WIDTH)
+    y: int = Field(ge=0, lt=IMAGE_HEIGHT)
+    height: int = Field(ge=MIN_RECTANGLE_HEIGHT, le=IMAGE_HEIGHT)
+    width: int = Field(ge=MIN_RECTANGLE_WIDTH, le=IMAGE_WIDTH)
 
     @staticmethod
     @field_validator('x', 'width')
@@ -113,7 +77,7 @@ class Rectangle(BaseModel):
                        other.width + other.x) - merged_x
         merged_h = max(self.height + self.y,
                        other.height + other.y) - merged_y
-        merged_rectangle = Rectangle(merged_x, merged_y, merged_h, merged_w)
+        merged_rectangle = Rectangle(x=merged_x, y=merged_y, height=merged_h, width=merged_w)
         return merged_rectangle
 
     def __hash__(self):
@@ -128,8 +92,8 @@ def generate_rectangles(num_rectangles):
     placed_rectangles: list[Rectangle] = []
     for _ in range(num_rectangles):
         while True:
-            rect_width = np.random.randint(MIN_RECTANGLE_WIDTH, max(11, IMAGE_WIDTH // 3))
-            rect_height = np.random.randint(MIN_RECTANGLE_HEIGHT, max(11, IMAGE_HEIGHT // 10))
+            rect_width = np.random.randint(MIN_RECTANGLE_WIDTH, IMAGE_WIDTH)
+            rect_height = np.random.randint(MIN_RECTANGLE_HEIGHT, IMAGE_HEIGHT)
             max_x = IMAGE_WIDTH - rect_width
             max_y = IMAGE_HEIGHT - rect_height
             if max_x <= 0 or max_y <= 0:
@@ -137,8 +101,9 @@ def generate_rectangles(num_rectangles):
             x = np.random.randint(0, max_x)
             y = np.random.randint(0, max_y)
             try:
-                curr_rectangle = Rectangle(x, y, rect_height, rect_width)
+                curr_rectangle = Rectangle(x=x, y=y, height=rect_height, width=rect_width)
             except ValueError:
+                print("Rectangle out of bounds")
                 continue
 
             # Check for overlap
@@ -200,7 +165,7 @@ def contours_to_rectangles(contours, hierarchy):
     for cnt in filtered_contours:
         x, y, width, height = cv2.boundingRect(cnt)
         try:
-            found_rectangle = Rectangle(x, y, height, width)
+            found_rectangle = Rectangle(x=x, y=y, height=height, width=width)
         except ValueError:
             continue
         rect_list.append(found_rectangle)
