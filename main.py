@@ -81,7 +81,7 @@ class Rectangle(BaseModel):
                     or self.max_y() <= other.y
                     or other.max_y() <= self.y)
 
-    def merge(self, other):
+    def merge(self, other: Self):
         merged_x = min(self.x, other.x)
         merged_y = min(self.y, other.y)
         merged_w = max(self.max_x(),
