@@ -13,6 +13,7 @@ with open("data_configs.yaml") as f:
     MIN_RECTANGLE_HEIGHT = configs["min_rectangle_height"]
     MIN_RECTANGLE_WIDTH = configs["min_rectangle_width"]
     MIN_RECTANGLE_AREA = configs["min_rectangle_area"]
+    MAX_RECTANGLE_AREA = configs["max_rectangle_area"]
     NOISE_STD = configs["noise_std"]
     SIGNAL_TO_NOISE_RATIO = configs["signal_to_noise_ratio"]
     BACKGROUND_MEAN = configs["background_mean"]
@@ -57,7 +58,7 @@ class Rectangle(BaseModel):
         # assert isinstance(self, Rectangle)
         height = value
         width = values['width']
-        if height * width < MIN_RECTANGLE_AREA:
+        if not MAX_RECTANGLE_AREA >= height * width >= MIN_RECTANGLE_AREA:
             raise ValueError("height * width must be greater than MIN_RECTANGLE_AREA")
         return value
 
