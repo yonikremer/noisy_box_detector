@@ -104,9 +104,12 @@ def main():
     print(f"Total ground truth area: {total_ground_truth_area}")
     print(f"Total predicted area: {total_predicted_area}")
     print(f"Total intersection area: {total_intersection_area}")
+    print(f"Total union area: {total_union_area}")
     print(f"Intersection Over Union: {total_intersection_area / total_union_area}")
     print(f"Intersection over ground truth: {total_intersection_area / total_ground_truth_area}")
     print(f"Intersection over predicted: {total_intersection_area / total_predicted_area}")
+    print(f"Number of ground truth rectangles: {len(ground_truth_rectangles)}")
+    print(f"Number of predicted rectangles: {len(predicted_rectangles)}")
 
 
 def plot_image(image, title):
