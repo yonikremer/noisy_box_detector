@@ -27,6 +27,7 @@ with open("algorithm_configs.yaml") as f:
     configs = yaml.load(f, Loader=yaml.FullLoader)
     BLURRING_KERNEL_SIZE = configs["blurring_kernel_size"]
     STRUCTURING_KERNEL_SIZE = configs["structuring_kernel_size"]
+    MAX_RECTANGLE_AREA_INCREMENT_RATIO = configs["max_rectangle_area_increment_ratio"]
 
 
 class Rectangle(BaseModel):
@@ -192,7 +193,10 @@ def contours_to_rectangles(contours, hierarchy):
                 other = rect_list[j]
                 # If they overlap, merge them
                 if current.overlap(other):
-                    current = current.merge(other)
+                    merged = current.merge(other)
+                    if merged.area() / (current.area() + other.area()) > MAX_RECTANGLE_AREA_INCREMENT_RATIO:
+                        continue
+                    current = merged
                     used[j] = True
                     merged_occurred = True
             new_rectangles.append(current)
