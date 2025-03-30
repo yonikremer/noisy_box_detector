@@ -207,7 +207,7 @@ def preprocess(image):
     5. fill small holes in rectangles
 
     :param image: a black and white image with noise low-valued background and high-valued rectangles
-    :return:
+    :return: a less noisy version of the image
     """
     blurred = cv2.GaussianBlur(image, (BLURRING_KERNEL_SIZE, BLURRING_KERNEL_SIZE), 0)
     # Convert to uint8 before thresholding
