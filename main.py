@@ -1,3 +1,5 @@
+from typing import Self
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -59,27 +61,33 @@ class Rectangle(BaseModel):
         if not MAX_RECTANGLE_AREA >= height * width >= MIN_RECTANGLE_AREA:
             raise ValueError("height * width must be greater than MIN_RECTANGLE_AREA")
         return value
+    
+    def max_y(self):
+        return self.y + self.height
+    
+    def max_x(self):
+        return self.x + self.width
 
     @property
     def slice(self):
         """
         :return: a slice of the image corresponding to the rectangle
         """
-        return slice(self.y, self.y + self.height), slice(self.x, self.x + self.width)
+        return slice(self.y, self.max_y()), slice(self.x, self.max_x())
 
-    def overlap(self, other):
-        return not (self.x + self.width <= other.x
-                    or other.x + other.width <= self.x
-                    or self.y + self.height <= other.y
-                    or other.y + other.height <= self.y)
+    def overlap(self, other: Self):
+        return not (self.max_x() <= other.x
+                    or other.max_x() <= self.x
+                    or self.max_y() <= other.y
+                    or other.max_y() <= self.y)
 
     def merge(self, other):
         merged_x = min(self.x, other.x)
         merged_y = min(self.y, other.y)
-        merged_w = max(self.width + self.x,
-                       other.width + other.x) - merged_x
-        merged_h = max(self.height + self.y,
-                       other.height + other.y) - merged_y
+        merged_w = max(self.max_x(),
+                       other.max_x()) - merged_x
+        merged_h = max(self.max_y(),
+                       other.max_y()) - merged_y
         merged_rectangle = Rectangle(x=merged_x, y=merged_y, height=merged_h, width=merged_w)
         return merged_rectangle
 
