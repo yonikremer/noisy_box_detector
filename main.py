@@ -194,11 +194,12 @@ def contours_to_rectangles(contours, hierarchy):
                 # If they overlap, merge them
                 if current.overlap(other):
                     merged = current.merge(other)
-                    if merged.area() / (current.area() + other.area()) > MAX_RECTANGLE_AREA_INCREMENT_RATIO:
-                        continue
-                    current = merged
-                    used[j] = True
-                    merged_occurred = True
+                    area_before_merge = current.area() + other.area()
+                    area_increment_ratio = merged.area() / area_before_merge
+                    if area_increment_ratio <= MAX_RECTANGLE_AREA_INCREMENT_RATIO:
+                        current = merged
+                        used[j] = True
+                        merged_occurred = True
             new_rectangles.append(current)
 
         rect_list = new_rectangles
