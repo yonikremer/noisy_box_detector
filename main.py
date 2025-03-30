@@ -108,6 +108,38 @@ def main():
 
 
 def merge_overlapping_rectangles(rect_list: list[Rectangle]) -> list[Rectangle]:
+    """
+        Given a list of rectangles, merges close rectangles
+        Merge conditions:
+        1. The distance between the two rectangles is less than or equal to MAX_DISTANCE_BETWEEN_RECTANGLES
+        2. The area of the merged rectangle, divided by the sum of the areas of the two rectangles,
+           is less than or equal to MAX_RECTANGLE_AREA_INCREMENT_RATIO
+        3. The merged rectangle is a valid rectangle
+
+        Merging algorithm:
+            Initialize a flag merged_occurred to True.
+            This flag will be used to track whether any merging occurred in the current iteration.
+            Initialize an empty list new_rectangles to store the merged rectangles.
+            Initialize a list used to keep track of which rectangles have been used in the merging process.
+            This list is initialized with False values for each rectangle in the input list.
+            Iterate over each rectangle in the input list:
+                If the rectangle has already been used (i.e., used[i] is True), skip to the next rectangle.
+                Otherwise, set used[i] to True.
+                Iterate over each rectangle in the input list that comes after the current rectangle (i.e., j ranges from i+1 to the end of the list):
+                    If the current rectangle overlaps with the other rectangle (i.e., current.distance(other) <= MAX_DISTANCE_BETWEEN_RECTANGLES),
+                    merge them:
+                        Create a new rectangle that is the union of the two rectangles (i.e., merged = current.merge(other)).
+                        Check if the merged rectangle is valid (i.e., its area is less than or equal to MAX_RECTANGLE_AREA_INCREMENT_RATIO times the sum of the areas of the two original rectangles). If it's not valid, skip to the next rectangle.
+                        Set merged_occurred to True.
+                        Update the current rectangle to be the merged rectangle.
+                        Set used[j] to True to mark the other rectangle as used.
+                        Add the updated current rectangle to the new_rectangles list.
+                    Repeat steps 4-5 until no more merging occurs (i.e., merged_occurred is False).
+                    Return the new_rectangles list.
+
+        :param rect_list: A list of rectangles
+        :return: a list of merged rectangles
+    """
     merged_occurred = True
     while merged_occurred:
         merged_occurred = False
@@ -163,6 +195,20 @@ def plot_image(image, title):
 
 
 def preprocess(image):
+    """
+    Given a black and white image with noise low-valued background and high-valued rectangles,
+    Preprocess the image to remove as much noise as possible
+
+    Algorithm:
+    1. Blur the image
+    2. Find the noise threshold
+    3. Zero out the pixel less than the threshold
+    4. remove small noise points
+    5. fill small holes in rectangles
+
+    :param image: a black and white image with noise low-valued background and high-valued rectangles
+    :return:
+    """
     blurred = cv2.GaussianBlur(image, (BLURRING_KERNEL_SIZE, BLURRING_KERNEL_SIZE), 0)
     # Convert to uint8 before thresholding
     max_value, min_value = blurred.max(), blurred.min()
@@ -175,7 +221,9 @@ def preprocess(image):
     STRUCTURING_ELEMENT_KERNEL = cv2.getStructuringElement(
         cv2.MORPH_RECT, (STRUCTURING_KERNEL_SIZE, STRUCTURING_KERNEL_SIZE)
     )
+    # remove small noise points
     opened = cv2.morphologyEx(binary_image, cv2.MORPH_OPEN, STRUCTURING_ELEMENT_KERNEL)
+    # fill small holes in rectangles
     closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, STRUCTURING_ELEMENT_KERNEL)
     return closed
 
