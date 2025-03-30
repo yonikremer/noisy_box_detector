@@ -5,7 +5,6 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import yaml
-from fontTools.subset import intersect
 
 from core_algorithm import contours_to_rectangles, preprocess
 from rectangle import Rectangle
