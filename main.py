@@ -16,6 +16,9 @@ with open("algorithm_configs.yaml") as f:
     MAX_RECTANGLE_AREA_INCREMENT_RATIO = algorithm_configs[
         "max_rectangle_area_increment_ratio"
     ]
+    MAX_DISTANCE_BETWEEN_RECTANGLES = algorithm_configs[
+        "max_distance_between_rectangles"
+    ]
 
 
 def generate_rectangles(num_rectangles):
@@ -117,7 +120,7 @@ def merge_overlapping_rectangles(rect_list: list[Rectangle]) -> list[Rectangle]:
                     continue
                 other = rect_list[j]
                 # If they overlap, merge them
-                if current.overlap(other):
+                if current.distance(other) <= MAX_DISTANCE_BETWEEN_RECTANGLES:
                     merged = current.merge(other)
                     area_before_merge = current.area() + other.area()
                     area_increment_ratio = merged.area() / area_before_merge
