@@ -1,25 +1,31 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import yaml
 from pydantic import BaseModel, field_validator, Field
 
 MAX_UINT8 = 255
 
-TOTAL_PIXELS = 10_000_000
-IMAGE_HEIGHT = 2048
-IMAGE_WIDTH = TOTAL_PIXELS // IMAGE_HEIGHT
+with open("data_configs.yaml") as f:
+    configs = yaml.load(f, Loader=yaml.FullLoader)
+    IMAGE_WIDTH = configs["image_width"]
+    IMAGE_HEIGHT = configs["image_height"]
+    MIN_RECTANGLE_HEIGHT = configs["min_rectangle_height"]
+    MIN_RECTANGLE_WIDTH = configs["min_rectangle_width"]
+    MIN_RECTANGLE_AREA = configs["min_rectangle_area"]
+    NOISE_STD = configs["noise_std"]
+    SIGNAL_TO_NOISE_RATIO = configs["signal_to_noise_ratio"]
+    BACKGROUND_MEAN = configs["background_mean"]
 
-SIGNAL_TO_NOISE_RATIO = 4
-BACKGROUND_MEAN = 40
-NOISE_STD = 75
-RECTANGLE_MEAN = BACKGROUND_MEAN * SIGNAL_TO_NOISE_RATIO
-RECTANGLE_STD = NOISE_STD * SIGNAL_TO_NOISE_RATIO
-MIN_RECTANGLE_AVG = RECTANGLE_MEAN - RECTANGLE_STD / 2
-MIN_RECTANGLE_WIDTH = 10
-MIN_RECTANGLE_HEIGHT = 10
-MIN_RECTANGLE_AREA = MIN_RECTANGLE_WIDTH * MIN_RECTANGLE_HEIGHT
-BLURRING_KERNEL_SIZE = 5
-STRUCTURING_KERNEL_SIZE = 3
+    RECTANGLE_MEAN = BACKGROUND_MEAN * SIGNAL_TO_NOISE_RATIO
+    RECTANGLE_STD = NOISE_STD * SIGNAL_TO_NOISE_RATIO
+    MIN_RECTANGLE_AVG = RECTANGLE_MEAN - RECTANGLE_STD / 2
+    MIN_RECTANGLE_AREA = MIN_RECTANGLE_WIDTH * MIN_RECTANGLE_HEIGHT
+
+with open("algorithm_configs.yaml") as f:
+    configs = yaml.load(f, Loader=yaml.FullLoader)
+    BLURRING_KERNEL_SIZE = configs["blurring_kernel_size"]
+    STRUCTURING_KERNEL_SIZE = configs["structuring_kernel_size"]
 
 
 class Rectangle(BaseModel):

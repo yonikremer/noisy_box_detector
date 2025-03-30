@@ -1,0 +1,2 @@
+blurring_kernel_size: 5
+structuring_kernel_size: 3

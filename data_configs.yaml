@@ -1,0 +1,12 @@
+image_height: 2048
+image_width: 4096
+signal_to_noise_ratio: 4
+background_mean: 40
+noise_std: 75
+rectangle_mean: 160
+rectangle_std: 300
+min_rectangle_avg: 10
+min_rectangle_width: 10
+min_rectangle_height: 10
+min_rectangle_area: 200
+max_rectangle_area: 1048576
