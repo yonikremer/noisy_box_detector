@@ -21,7 +21,6 @@ with open("data_configs.yaml") as f:
     RECTANGLE_MEAN = BACKGROUND_MEAN * SIGNAL_TO_NOISE_RATIO
     RECTANGLE_STD = NOISE_STD * SIGNAL_TO_NOISE_RATIO
     MIN_RECTANGLE_AVG = RECTANGLE_MEAN - RECTANGLE_STD / 2
-    MIN_RECTANGLE_AREA = MIN_RECTANGLE_WIDTH * MIN_RECTANGLE_HEIGHT
 
 with open("algorithm_configs.yaml") as f:
     configs = yaml.load(f, Loader=yaml.FullLoader)
@@ -55,7 +54,6 @@ class Rectangle(BaseModel):
     @staticmethod
     @field_validator('height', 'width')
     def validate_area(value, values):
-        # assert isinstance(self, Rectangle)
         height = value
         width = values['width']
         if not MAX_RECTANGLE_AREA >= height * width >= MIN_RECTANGLE_AREA:
