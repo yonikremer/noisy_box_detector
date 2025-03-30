@@ -1,9 +1,11 @@
+import itertools
 import random
 
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import yaml
+from fontTools.subset import intersect
 
 from core_algorithm import contours_to_rectangles, preprocess
 from rectangle import Rectangle
@@ -76,17 +78,39 @@ def main():
     ground_truth_rectangles, image = generate_data()
     fig, ax = plt.subplots()
     ax.imshow(image, cmap="binary", vmin=0, vmax=MAX_UINT8)
+    total_ground_truth_area = 0
     for ground_truth_rectangle in ground_truth_rectangles:
         ground_truth_rectangle.plot(ax, color="green")
+        total_ground_truth_area += ground_truth_rectangle.area()
     clean = preprocess(image)
     contours, hierarchy = cv2.findContours(
         clean, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
     predicted_rectangles = contours_to_rectangles(contours, hierarchy)
+    total_predicted_area = 0
     for predicted_rectangle in predicted_rectangles:
+        total_predicted_area += predicted_rectangle.area()
         predicted_rectangle.plot(ax, color="red")
     plt.title("Detected Rectangles (red) Compared to Ground Truth (green)")
     plt.show()
+
+    total_intersection_area = 0
+    total_union_area = 0
+    for ground_truth_rectangle, computed_rectangle in itertools.product(ground_truth_rectangles, predicted_rectangles):
+        if ground_truth_rectangle.overlap(computed_rectangle):
+            current_intersection_area = ground_truth_rectangle.intersetion_area(computed_rectangle)
+            assert current_intersection_area > 0
+            assert current_intersection_area <= ground_truth_rectangle.area()
+            assert current_intersection_area <= computed_rectangle.area()
+            total_intersection_area += current_intersection_area
+            total_union_area += ground_truth_rectangle.area() + computed_rectangle.area() - current_intersection_area
+
+    print(f"Total ground truth area: {total_ground_truth_area}")
+    print(f"Total predicted area: {total_predicted_area}")
+    print(f"Total intersection area: {total_intersection_area}")
+    print(f"Intersection Over Union: {total_intersection_area / total_union_area}")
+    print(f"Intersection over ground truth: {total_intersection_area / total_ground_truth_area}")
+    print(f"Intersection over predicted: {total_intersection_area / total_predicted_area}")
 
 
 def plot_image(image, title):

@@ -119,3 +119,14 @@ class Rectangle(BaseModel):
 
         # Return distance
         return min(dx, dy)
+
+    def intersetion_area(self, other: Self) -> int:
+        """
+        :param other: Another rectangle
+        :return: The area of the intersection between the two rectangles
+        """
+        max_start_x = max(self.x, other.x)
+        min_end_x = min(self.max_x(), other.max_x())
+        max_start_y = max(self.y, other.y)
+        min_end_y = min(self.max_y(), other.max_y())
+        return (min_end_x - max_start_x) * (min_end_y - max_start_y)
