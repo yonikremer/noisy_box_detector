@@ -43,7 +43,7 @@ class Rectangle(BaseModel):
     def max_x(self):
         return self.x + self.width
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_max_x(self):
         if self.max_x() >= IMAGE_WIDTH:
             raise ValueError("x + width must be less than IMAGE_WIDTH")
@@ -52,7 +52,7 @@ class Rectangle(BaseModel):
     def max_y(self):
         return self.y + self.height
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_max_y(self):
         if self.max_y() >= IMAGE_HEIGHT:
             raise ValueError("y + height must be less than IMAGE_HEIGHT")
@@ -61,10 +61,12 @@ class Rectangle(BaseModel):
     def area(self):
         return self.height * self.width
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_area(self):
         if self.area() < MIN_RECTANGLE_AREA:
-            raise ValueError("Area of rectangle must be greater than MIN_RECTANGLE_AREA")
+            raise ValueError(
+                "Area of rectangle must be greater than MIN_RECTANGLE_AREA"
+            )
         return self
 
     @property
@@ -75,23 +77,35 @@ class Rectangle(BaseModel):
         return slice(self.y, self.max_y()), slice(self.x, self.max_x())
 
     def overlap(self, other: Self):
-        return not (self.max_x() <= other.x or other.max_x() <= self.x
-                    or self.max_y() <= other.y or other.max_y() <= self.y)
+        return not (
+            self.max_x() <= other.x
+            or other.max_x() <= self.x
+            or self.max_y() <= other.y
+            or other.max_y() <= self.y
+        )
 
     def merge(self, other: Self):
         merged_x = min(self.x, other.x)
         merged_y = min(self.y, other.y)
         merged_w = max(self.max_x(), other.max_x()) - merged_x
         merged_h = max(self.max_y(), other.max_y()) - merged_y
-        merged_rectangle = Rectangle(x=merged_x, y=merged_y, height=merged_h, width=merged_w)
+        merged_rectangle = Rectangle(
+            x=merged_x, y=merged_y, height=merged_h, width=merged_w
+        )
         return merged_rectangle
 
     def __hash__(self):
         return hash((self.x, self.y, self.height, self.width))
 
-    def plot(self, ax, color='red'):
-        rect = plt.Rectangle((self.x, self.y),
-                             self.width, self.height, linewidth=1, edgecolor=color, facecolor='none')
+    def plot(self, ax, color="red"):
+        rect = plt.Rectangle(
+            (self.x, self.y),
+            self.width,
+            self.height,
+            linewidth=1,
+            edgecolor=color,
+            facecolor="none",
+        )
         ax.add_patch(rect)
 
 
@@ -108,7 +122,9 @@ def generate_rectangles(num_rectangles):
             x = np.random.randint(0, max_x)
             y = np.random.randint(0, max_y)
             try:
-                curr_rectangle = Rectangle(x=x, y=y, height=rect_height, width=rect_width)
+                curr_rectangle = Rectangle(
+                    x=x, y=y, height=rect_height, width=rect_width
+                )
             except ValueError:
                 print("Rectangle out of bounds")
                 continue
@@ -130,7 +146,9 @@ def generate_rectangles(num_rectangles):
 def generate_data():
     # The data are greyscale images with a noisy background and black rectangles
     # of different shapes, all parallel to the image's axes.
-    image = np.random.normal(loc=BACKGROUND_MEAN, scale=NOISE_STD, size=(IMAGE_HEIGHT, IMAGE_WIDTH))
+    image = np.random.normal(
+        loc=BACKGROUND_MEAN, scale=NOISE_STD, size=(IMAGE_HEIGHT, IMAGE_WIDTH)
+    )
     image = image.astype(np.float64)
 
     # Add a random number of black (0-valued) rectangles without overlap.
@@ -138,8 +156,11 @@ def generate_data():
     placed_rectangles = generate_rectangles(num_rectangles)
 
     for curr_rectangle in placed_rectangles:
-        rectangle_values = np.random.normal(loc=RECTANGLE_MEAN, scale=RECTANGLE_STD,
-                                            size=(curr_rectangle.height, curr_rectangle.width))
+        rectangle_values = np.random.normal(
+            loc=RECTANGLE_MEAN,
+            scale=RECTANGLE_STD,
+            size=(curr_rectangle.height, curr_rectangle.width),
+        )
         image[curr_rectangle.slice] = rectangle_values
 
     return image
@@ -148,17 +169,25 @@ def generate_data():
 def main():
     image = generate_data()
     fig, ax = plt.subplots()
-    ax.imshow(image, cmap='binary', vmin=0, vmax=MAX_UINT8)
+    ax.imshow(image, cmap="binary", vmin=0, vmax=MAX_UINT8)
     clean = preprocess(image)
-    contours, hierarchy = cv2.findContours(clean, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(
+        clean, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    )
     former_rectangles = contours_to_rectangles(contours, hierarchy)
 
     for found_rectangle in former_rectangles:
         inside_rectangle = image[found_rectangle.slice]
         mean = np.mean(inside_rectangle)
         print(f"Rectangle mean: {mean}")
-        plotting_rectangle = plt.Rectangle((found_rectangle.x, found_rectangle.y), found_rectangle.width,
-                                           found_rectangle.height, linewidth=1, edgecolor='red', facecolor='none')
+        plotting_rectangle = plt.Rectangle(
+            (found_rectangle.x, found_rectangle.y),
+            found_rectangle.width,
+            found_rectangle.height,
+            linewidth=1,
+            edgecolor="red",
+            facecolor="none",
+        )
         ax.add_patch(plotting_rectangle)
 
     plt.title("Detected Rectangles")
@@ -194,7 +223,9 @@ def merge_overlapping_rectangles(rect_list: list[Rectangle]) -> list[Rectangle]:
 
 
 def contours_to_rectangles(contours, hierarchy):
-    filtered_contours = [cnt for i, cnt in enumerate(contours) if hierarchy[0][i][3] == -1]
+    filtered_contours = [
+        cnt for i, cnt in enumerate(contours) if hierarchy[0][i][3] == -1
+    ]
     rect_list = []
     for cnt in filtered_contours:
         x, y, width, height = cv2.boundingRect(cnt)
@@ -208,7 +239,7 @@ def contours_to_rectangles(contours, hierarchy):
 
 
 def plot_image(image, title):
-    plt.imshow(image, cmap='binary', vmin=0, vmax=MAX_UINT8)
+    plt.imshow(image, cmap="binary", vmin=0, vmax=MAX_UINT8)
     plt.title(title)
     plt.show()
 
@@ -217,9 +248,15 @@ def preprocess(image):
     blurred = cv2.GaussianBlur(image, (BLURRING_KERNEL_SIZE, BLURRING_KERNEL_SIZE), 0)
     # Convert to uint8 before thresholding
     max_value, min_value = blurred.max(), blurred.min()
-    blurred_normalised = np.uint8(MAX_UINT8 * ((blurred - min_value) / (max_value - min_value)))
-    thresh, binary_image = cv2.threshold(blurred_normalised, 0, MAX_UINT8, cv2.THRESH_OTSU)
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (STRUCTURING_KERNEL_SIZE, STRUCTURING_KERNEL_SIZE))
+    blurred_normalised = np.uint8(
+        MAX_UINT8 * ((blurred - min_value) / (max_value - min_value))
+    )
+    thresh, binary_image = cv2.threshold(
+        blurred_normalised, 0, MAX_UINT8, cv2.THRESH_OTSU
+    )
+    kernel = cv2.getStructuringElement(
+        cv2.MORPH_RECT, (STRUCTURING_KERNEL_SIZE, STRUCTURING_KERNEL_SIZE)
+    )
     opened = cv2.morphologyEx(binary_image, cv2.MORPH_OPEN, kernel)
     closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, kernel)
     return closed
