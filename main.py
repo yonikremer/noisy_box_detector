@@ -13,6 +13,7 @@ with open("data_configs.yaml") as f:
     IMAGE_WIDTH = configs["image_width"]
     IMAGE_HEIGHT = configs["image_height"]
     MIN_RECTANGLE_HEIGHT = configs["min_rectangle_height"]
+    MAX_RECTANGLE_HEIGHT = configs["max_rectangle_height"]
     MIN_RECTANGLE_WIDTH = configs["min_rectangle_width"]
     MIN_RECTANGLE_AREA = configs["min_rectangle_area"]
     NOISE_STD = configs["noise_std"]
@@ -33,7 +34,7 @@ with open("algorithm_configs.yaml") as f:
 class Rectangle(BaseModel):
     x: int = Field(ge=0, lt=IMAGE_WIDTH)
     y: int = Field(ge=0, lt=IMAGE_HEIGHT)
-    height: int = Field(ge=MIN_RECTANGLE_HEIGHT, le=IMAGE_HEIGHT)
+    height: int = Field(ge=MIN_RECTANGLE_HEIGHT, le=MAX_RECTANGLE_HEIGHT)
     width: int = Field(ge=MIN_RECTANGLE_WIDTH, le=IMAGE_WIDTH)
 
     def max_x(self):

@@ -8,4 +8,5 @@ rectangle_std: 300
 min_rectangle_avg: 10
 min_rectangle_width: 10
 min_rectangle_height: 10
+max_rectangle_height: 512
 min_rectangle_area: 200
