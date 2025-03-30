@@ -114,13 +114,8 @@ class Rectangle(BaseModel):
             return 0
 
         # Find the closest pair of edges
-        dx = max(
-            abs(other.x - (self.x + self.width)), abs(self.x - (other.x + other.width))
-        )
-        dy = max(
-            abs(other.y - (self.y + self.height)),
-            abs(self.y - (other.y + other.height)),
-        )
+        dx = max(abs(other.x - self.max_x()), abs(self.x - other.max_x()))
+        dy = max(abs(other.y - self.max_y()), abs(self.y - other.max_y()))
 
         # Return distance
         return min(dx, dy)
