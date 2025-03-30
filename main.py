@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import yaml
-from pydantic import BaseModel, field_validator, Field
+from pydantic import BaseModel, Field, model_validator
 
 MAX_UINT8 = 255
 
@@ -36,37 +36,34 @@ class Rectangle(BaseModel):
     height: int = Field(ge=MIN_RECTANGLE_HEIGHT, le=IMAGE_HEIGHT)
     width: int = Field(ge=MIN_RECTANGLE_WIDTH, le=IMAGE_WIDTH)
 
-    @staticmethod
-    @field_validator('x', 'width')
-    def validate_x_width(value, values):
-        if value + values['width'] > IMAGE_WIDTH:
-            raise ValueError("x + width must be less than IMAGE_WIDTH")
-        return value
+    def max_x(self):
+        return self.x + self.width
 
-    @staticmethod
-    @field_validator('y', 'height')
-    def validate_y_height(value, values):
-        if value + values['height'] > IMAGE_HEIGHT:
+    @model_validator(mode='after')
+    def validate_max_x(self):
+        if self.max_x() >= IMAGE_WIDTH:
+            raise ValueError("x + width must be less than IMAGE_WIDTH")
+        return self
+
+    def max_y(self):
+        return self.y + self.height
+
+    @model_validator(mode='after')
+    def validate_max_y(self):
+        if self.max_y() >= IMAGE_HEIGHT:
             raise ValueError("y + height must be less than IMAGE_HEIGHT")
-        return value
+        return self
 
     def area(self):
         return self.height * self.width
 
-    @staticmethod
-    @field_validator('height', 'width')
-    def validate_area(value, values):
-        height = value
-        width = values['width']
-        if not MAX_RECTANGLE_AREA >= height * width >= MIN_RECTANGLE_AREA:
-            raise ValueError("height * width must be greater than MIN_RECTANGLE_AREA")
-        return value
-    
-    def max_y(self):
-        return self.y + self.height
-    
-    def max_x(self):
-        return self.x + self.width
+    @model_validator(mode='after')
+    def validate_area(self):
+        if self.area() > MAX_RECTANGLE_AREA:
+            raise ValueError("Area of rectangle must be less than MAX_RECTANGLE_AREA")
+        if self.area() < MIN_RECTANGLE_AREA:
+            raise ValueError("Area of rectangle must be greater than MIN_RECTANGLE_AREA")
+        return self
 
     @property
     def slice(self):
