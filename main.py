@@ -78,9 +78,6 @@ def main():
     fig, ax = plt.subplots()
     ax.imshow(image, cmap="binary", vmin=0, vmax=MAX_UINT8)
     total_ground_truth_area = 0
-    for ground_truth_rectangle in ground_truth_rectangles:
-        ground_truth_rectangle.plot(ax, color="green")
-        total_ground_truth_area += ground_truth_rectangle.area()
     clean = preprocess(image)
     contours, hierarchy = cv2.findContours(
         clean, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
@@ -90,6 +87,11 @@ def main():
     for predicted_rectangle in predicted_rectangles:
         total_predicted_area += predicted_rectangle.area()
         predicted_rectangle.plot(ax, color="red")
+
+    for ground_truth_rectangle in ground_truth_rectangles:
+        ground_truth_rectangle.plot(ax, color="green")
+        total_ground_truth_area += ground_truth_rectangle.area()
+
     plt.title("Detected Rectangles (red) Compared to Ground Truth (green)")
     plt.show()
 
