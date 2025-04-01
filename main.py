@@ -9,7 +9,7 @@ import yaml
 
 from core_algorithm import contours_to_rectangles, preprocess
 from rectangle import Rectangle
-from comet_ml import start, CometExperiment
+from comet_ml import start
 
 MAX_UINT8 = 255
 
