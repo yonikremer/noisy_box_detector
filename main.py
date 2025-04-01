@@ -1,4 +1,5 @@
 import itertools
+import os
 import random
 
 import cv2
@@ -8,6 +9,7 @@ import yaml
 
 from core_algorithm import contours_to_rectangles, preprocess
 from rectangle import Rectangle
+from comet_ml import start, CometExperiment
 
 MAX_UINT8 = 255
 
@@ -36,7 +38,7 @@ def generate_rectangles(num_rectangles: int) -> list[Rectangle]:
     return placed_rectangles
 
 
-def generate_data():
+def generate_data() -> [list[Rectangle], np.ndarray]:
     # The data are greyscale images with a noisy background and black rectangles
     # of different shapes, all parallel to the image's axes.
     with open("signal_configs.yaml") as signal_configs_file:
@@ -74,7 +76,14 @@ def generate_data():
 
 
 def main():
+    experiment = start(
+        api_key="yNLPmFeYvfF9HArNCZ2xm8RHn",
+        project_name="generic-rectangle-detector",
+        workspace="yonikremer"
+    )
+    log_code_files(experiment)
     ground_truth_rectangles, image = generate_data()
+    experiment.log_image(image)
     plt.imshow(image, cmap="binary", vmin=0, vmax=MAX_UINT8)
     total_ground_truth_area = 0
     clean = preprocess(image)
@@ -102,15 +111,48 @@ def main():
             total_intersection_area += current_intersection_area
             total_union_area += ground_truth_rectangle.area() + computed_rectangle.area() - current_intersection_area
 
-    print(f"Total ground truth area: {total_ground_truth_area}")
-    print(f"Total predicted area: {total_predicted_area}")
-    print(f"Total intersection area: {total_intersection_area}")
-    print(f"Total union area: {total_union_area}")
-    print(f"Intersection Over Union: {total_intersection_area / total_union_area}")
-    print(f"Intersection over ground truth: {total_intersection_area / total_ground_truth_area}")
-    print(f"Intersection over predicted: {total_intersection_area / total_predicted_area}")
-    print(f"Number of ground truth rectangles: {len(ground_truth_rectangles)}")
-    print(f"Number of predicted rectangles: {len(predicted_rectangles)}")
+    intersection_over_union = total_intersection_area / total_union_area
+    intersection_over_ground_truth = total_intersection_area / total_ground_truth_area
+    intersection_over_predicted = total_intersection_area / total_predicted_area
+    number_of_ground_truth_rectangles = len(ground_truth_rectangles)
+    number_of_ground_predicted_rectangles = len(predicted_rectangles)
+
+    experiment.log_metrics(
+        {
+            "total_ground_truth_area": total_ground_truth_area,
+            "total_predicted_area": total_predicted_area,
+            "total_intersection_area": total_intersection_area,
+            "total_union_area": total_union_area,
+            "intersection_over_union": intersection_over_union,
+            "intersection_over_ground_truth": intersection_over_ground_truth,
+            "intersection_over_predicted": intersection_over_predicted,
+            "number_of_ground_truth_rectangles": number_of_ground_truth_rectangles,
+            "number_of_predicted_rectangles": number_of_ground_predicted_rectangles,
+        }
+    )
+
+
+def log_code_files(experiment):
+    ignored_directories = ['.git', '.venv', 'venv', '__pycache__', '.idea']
+    for root, dirs, files in os.walk('.'):
+        if any(ignored_directory in root for ignored_directory in ignored_directories):
+            continue
+        for subdir in dirs:
+            dirpath = os.path.join(root, subdir)
+            if any(ignored_directory in dirpath for ignored_directory in ignored_directories):
+                continue
+            experiment.log_code(dirpath)
+
+        for file in files:
+            filepath = os.path.join(root, file)
+            if any(ignored_directory in filepath for ignored_directory in ignored_directories):
+                continue
+            if filepath.endswith('.py'):
+                experiment.log_code(filepath)
+            if filepath.endswith('.yaml'):
+                with open(filepath) as f:
+                    parameters = yaml.load(f, Loader=yaml.FullLoader)
+                experiment.log_parameters(parameters)
 
 
 def plot_image(image, title):
