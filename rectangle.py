@@ -78,7 +78,7 @@ class Rectangle(BaseModel):
     def __hash__(self):
         return hash((self.x, self.y, self.height, self.width))
 
-    def plot(self, ax, color="red"):
+    def plot(self, color="red"):
         rect = plt.Rectangle(
             (self.x, self.y),
             self.width,
@@ -87,7 +87,7 @@ class Rectangle(BaseModel):
             edgecolor=color,
             facecolor="none",
         )
-        ax.add_patch(rect)
+        plt.gca().add_patch(rect)
 
     @classmethod
     def random(cls):
