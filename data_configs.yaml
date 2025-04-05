@@ -1,6 +1,5 @@
 image_height: 2048
 image_width: 4096
-min_rectangle_avg: 10
 min_rectangle_width: 10
 min_rectangle_height: 10
 max_rectangle_height: 512
