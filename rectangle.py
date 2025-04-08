@@ -21,6 +21,9 @@ class Rectangle(BaseModel):
     height: int = Field(ge=MIN_RECTANGLE_HEIGHT, le=MAX_RECTANGLE_HEIGHT)
     length: int = Field(ge=MIN_RECTANGLE_WIDTH, le=IMAGE_WIDTH)
 
+    def middle_y(self):
+        return self.y + self.height // 2
+
     def max_x(self):
         return self.x + self.length
 
@@ -136,3 +139,10 @@ class Rectangle(BaseModel):
         assert intersection_area <= self.area()
         assert intersection_area <= other.area()
         return intersection_area
+
+    @staticmethod
+    def csv_header():
+        return 'x,length,middle_y,height'
+
+    def to_csv_row(self):
+        return ','.join(map(str, [self.x, self.length, self.middle_y(), self.height]))

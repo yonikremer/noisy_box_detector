@@ -92,9 +92,12 @@ def main():
     )
     predicted_rectangles = contours_to_rectangles(contours, hierarchy)
     total_predicted_area = 0
-    for predicted_rectangle in predicted_rectangles:
-        total_predicted_area += predicted_rectangle.area()
-        predicted_rectangle.plot(color="red")
+    with open("result_csv.csv", "w") as f:
+        f.write(Rectangle.csv_header())
+        for predicted_rectangle in predicted_rectangles:
+            f.write(predicted_rectangle.to_csv_row())
+            total_predicted_area += predicted_rectangle.area()
+            predicted_rectangle.plot(color="red")
 
     for ground_truth_rectangle in ground_truth_rectangles:
         ground_truth_rectangle.plot(color="green")
