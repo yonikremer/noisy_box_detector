@@ -19,10 +19,10 @@ class Rectangle(BaseModel):
     x: int = Field(ge=0, lt=IMAGE_WIDTH)
     y: int = Field(ge=0, lt=IMAGE_HEIGHT)
     height: int = Field(ge=MIN_RECTANGLE_HEIGHT, le=MAX_RECTANGLE_HEIGHT)
-    width: int = Field(ge=MIN_RECTANGLE_WIDTH, le=IMAGE_WIDTH)
+    length: int = Field(ge=MIN_RECTANGLE_WIDTH, le=IMAGE_WIDTH)
 
     def max_x(self):
-        return self.x + self.width
+        return self.x + self.length
 
     @model_validator(mode="after")
     def validate_max_x(self):
@@ -40,7 +40,7 @@ class Rectangle(BaseModel):
         return self
 
     def area(self):
-        return self.height * self.width
+        return self.height * self.length
 
     @model_validator(mode="after")
     def validate_area(self):
@@ -59,10 +59,10 @@ class Rectangle(BaseModel):
 
     def overlap(self, other: Self):
         return not (
-            self.max_x() <= other.x
-            or other.max_x() <= self.x
-            or self.max_y() <= other.y
-            or other.max_y() <= self.y
+                self.max_x() <= other.x
+                or other.max_x() <= self.x
+                or self.max_y() <= other.y
+                or other.max_y() <= self.y
         )
 
     def merge(self, other: Self):
@@ -71,17 +71,17 @@ class Rectangle(BaseModel):
         merged_w = max(self.max_x(), other.max_x()) - merged_x
         merged_h = max(self.max_y(), other.max_y()) - merged_y
         merged_rectangle = Rectangle(
-            x=merged_x, y=merged_y, height=merged_h, width=merged_w
+            x=merged_x, y=merged_y, height=merged_h, length=merged_w
         )
         return merged_rectangle
 
     def __hash__(self):
-        return hash((self.x, self.y, self.height, self.width))
+        return hash((self.x, self.y, self.height, self.length))
 
     def plot(self, color="red"):
         rect = plt.Rectangle(
             (self.x, self.y),
-            self.width,
+            self.length,
             self.height,
             linewidth=1,
             edgecolor=color,
@@ -97,7 +97,7 @@ class Rectangle(BaseModel):
         max_height = min(IMAGE_HEIGHT - y, MAX_RECTANGLE_HEIGHT)
         rect_width = random.randint(MIN_RECTANGLE_WIDTH, max_width - 1)
         rect_height = random.randint(MIN_RECTANGLE_HEIGHT, max_height - 1)
-        return Rectangle(x=x, y=y, height=rect_height, width=rect_width)
+        return Rectangle(x=x, y=y, height=rect_height, length=rect_width)
 
     def distance(self, other: Self) -> int:
         """

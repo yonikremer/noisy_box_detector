@@ -68,7 +68,7 @@ def generate_data() -> [list[Rectangle], np.ndarray]:
         rectangle_values = np.random.normal(
             loc=RECTANGLE_MEAN,
             scale=RECTANGLE_STD,
-            size=(curr_rectangle.height, curr_rectangle.width),
+            size=(curr_rectangle.height, curr_rectangle.length),
         )
         image[curr_rectangle.slice] = rectangle_values
 

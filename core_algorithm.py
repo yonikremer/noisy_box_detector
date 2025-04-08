@@ -94,7 +94,7 @@ def contours_to_rectangles(contours, hierarchy):
     for cnt in filtered_contours:
         x, y, width, height = cv2.boundingRect(cnt)
         try:
-            found_rectangle = Rectangle(x=x, y=y, height=height, width=width)
+            found_rectangle = Rectangle(x=x, y=y, height=height, length=width)
         except ValueError:
             continue
         rect_list.append(found_rectangle)
