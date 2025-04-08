@@ -85,27 +85,35 @@ def main():
     ground_truth_rectangles, image = generate_data()
     experiment.log_image(image)
     plt.imshow(image, cmap="binary", vmin=0, vmax=MAX_UINT8)
-    total_ground_truth_area = 0
     clean = preprocess(image)
     contours, hierarchy = cv2.findContours(
         clean, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
     predicted_rectangles = contours_to_rectangles(contours, hierarchy)
-    total_predicted_area = 0
     with open("result_csv.csv", "w") as f:
         f.write(Rectangle.csv_header())
         for predicted_rectangle in predicted_rectangles:
             f.write(predicted_rectangle.to_csv_row())
-            total_predicted_area += predicted_rectangle.area()
             predicted_rectangle.plot(color="red")
 
     for ground_truth_rectangle in ground_truth_rectangles:
         ground_truth_rectangle.plot(color="green")
-        total_ground_truth_area += ground_truth_rectangle.area()
 
     plt.title("Detected Rectangles (red) Compared to Ground Truth (green)")
     plt.show()
 
+    log_metrics(experiment, ground_truth_rectangles, predicted_rectangles)
+
+
+
+def log_metrics(experiment, ground_truth_rectangles, predicted_rectangles):
+    total_ground_truth_area = 0
+    total_predicted_area = 0
+    for predicted_rectangle in predicted_rectangles:
+        total_predicted_area += predicted_rectangle.area()
+
+    for ground_truth_rectangle in ground_truth_rectangles:
+        total_ground_truth_area += ground_truth_rectangle.area()
     total_intersection_area = 0
     total_union_area = 0
     for ground_truth_rectangle, computed_rectangle in itertools.product(ground_truth_rectangles, predicted_rectangles):
