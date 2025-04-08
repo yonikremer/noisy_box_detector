@@ -142,7 +142,7 @@ class Rectangle(BaseModel):
 
     @staticmethod
     def csv_header():
-        return 'x,length,middle_y,height'
+        return 'x,length,middle_y,height\n'
 
     def to_csv_row(self):
-        return ','.join(map(str, [self.x, self.length, self.middle_y(), self.height]))
+        return ','.join(map(str, [self.x, self.length, self.middle_y(), self.height])) + '\n'
