@@ -28,10 +28,21 @@ def generate_random_fsk_signal(sample_rate: int, snapshot_duration: timedelta, m
     base_frequency = random.uniform(min_frequency, max_frequency)
     signal_bandwidth = random.gauss(20_000, 5_000)
     snapshot_duration_milliseconds = snapshot_duration.total_seconds() * 1000
-    start_time_milliseconds = random.uniform(0, snapshot_duration_milliseconds)
+    
+    # Generate signal duration with exponential distribution favoring shorter signals
+    # Mean duration of 100ms, but can be longer with decreasing probability
+    mean_duration_ms = 100
+    signal_duration_ms = np.random.exponential(mean_duration_ms)
+    
+    # Random start time anywhere in the snapshot
+    max_start_time_ms = snapshot_duration_milliseconds
+    start_time_milliseconds = random.uniform(0, max_start_time_ms)
     start_time = timedelta(milliseconds=start_time_milliseconds)
-    end_time_milliseconds = random.uniform(start_time_milliseconds, snapshot_duration_milliseconds)
+    
+    # Calculate end time, ensuring it doesn't exceed snapshot duration
+    end_time_milliseconds = min(start_time_milliseconds + signal_duration_ms, snapshot_duration_milliseconds)
     end_time = timedelta(milliseconds=end_time_milliseconds)
+    
     num_samples = int(sample_rate * snapshot_duration.total_seconds())
     num_frequencies = random.choice([2, 4, 8, 16, 32, 64])
 
