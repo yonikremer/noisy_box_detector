@@ -428,10 +428,10 @@ def main():
         plot_signal(signal, sample_rate, title)
     
     # Generate and plot combined snapshot
-    # snapshot = create_random_snapshot(
-    #     snapshot_bandwidth, sample_rate, snapshot_duration, num_signals=5
-    # )
-    # plot_signal(snapshot, sample_rate, "Combined Signal Snapshot")
+    snapshot = create_random_snapshot(
+        snapshot_bandwidth, sample_rate, snapshot_duration, num_signals=5
+    )
+    plot_signal(snapshot, sample_rate, "Combined Signal Snapshot")
 
 
 if __name__ == "__main__":
