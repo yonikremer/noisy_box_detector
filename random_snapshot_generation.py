@@ -50,7 +50,7 @@ def generate_random_fsk_signal(sample_rate: int, snapshot_duration: timedelta, m
     signal = np.zeros_like(time_signal, dtype=np.complex128)
 
     spacing = signal_bandwidth / (num_frequencies - 1)  # Calculate the spacing between frequencies
-    frequencies = [base_frequency + i * spacing for i in range(num_frequencies)]  # Define the four frequencies
+    frequencies = [base_frequency + i * spacing for i in range(num_frequencies)]  # Define the frequencies
     samples_per_symbol = max(1, int(spacing * sample_rate))  # Ensure at least 1 sample per symbol
 
     signal_first_sample = int(start_time.total_seconds() * sample_rate)
