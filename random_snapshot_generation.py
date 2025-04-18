@@ -70,7 +70,8 @@ def _apply_fade_window(signal: np.ndarray, start_idx: int, end_idx: int, sample_
         signal[end_idx - fade_length:end_idx] *= fade_window[::-1]
 
 
-def generate_random_fsk_signal(sample_rate: int, snapshot_duration: timedelta, carrier_frequency: float) -> np.ndarray:
+def generate_random_fsk_signal(sample_rate: int, snapshot_duration: timedelta, carrier_frequency: float,
+                             time_signal: np.ndarray) -> np.ndarray:
     """
     Generate a complex signal that randomly switches between four equally spaced frequencies.
 
@@ -78,18 +79,14 @@ def generate_random_fsk_signal(sample_rate: int, snapshot_duration: timedelta, c
         sample_rate (int): Sampling rate in Hz.
         snapshot_duration (timedelta): Total duration of the snapshot in seconds.
         carrier_frequency (float): Carrier frequency in Hz.
+        time_signal (np.ndarray): Pre-computed time signal array.
 
     Returns:
         np.ndarray: The generated complex signal.
     """
     signal_bandwidth = random.gauss(20_000, 5_000)
-    
     start_time, end_time = _generate_signal_timing(snapshot_duration)
-    
-    num_samples = int(sample_rate * snapshot_duration.total_seconds())
     num_frequencies = _select_number_of_states()
-
-    time_signal = np.linspace(0, snapshot_duration.total_seconds(), num_samples, endpoint=False)
     signal = np.zeros_like(time_signal, dtype=np.complex128)
 
     spacing = signal_bandwidth / (num_frequencies - 1)  # Calculate the spacing between frequencies
@@ -114,7 +111,8 @@ def generate_random_fsk_signal(sample_rate: int, snapshot_duration: timedelta, c
     return signal
 
 
-def generate_random_psk_signal(sample_rate: int, snapshot_duration: timedelta, carrier_frequency) -> np.ndarray:
+def generate_random_psk_signal(sample_rate: int, snapshot_duration: timedelta, carrier_frequency: float,
+                             time_signal: np.ndarray) -> np.ndarray:
     """
     Generate a complex signal that randomly switches between different phase states.
 
@@ -122,19 +120,15 @@ def generate_random_psk_signal(sample_rate: int, snapshot_duration: timedelta, c
         sample_rate (int): Sampling rate in Hz.
         snapshot_duration (timedelta): Total duration of the snapshot in seconds.
         carrier_frequency (float): Carrier frequency in Hz.
+        time_signal (np.ndarray): Pre-computed time signal array.
 
     Returns:
         np.ndarray: The generated complex signal.
     """    
     start_time, end_time = _generate_signal_timing(snapshot_duration)
-    
-    num_samples = int(sample_rate * snapshot_duration.total_seconds())
-    
     # Number of phase states (2 for BPSK, 4 for QPSK, 8 for 8-PSK, etc.)
     num_phase_states = _select_number_of_states()
     phase_states = np.linspace(0, 2 * np.pi, num_phase_states, endpoint=False)
-    
-    time_signal = np.linspace(0, snapshot_duration.total_seconds(), num_samples, endpoint=False)
     signal = np.zeros_like(time_signal, dtype=np.complex128)
     
     # Calculate symbol duration (ensure at least 10 samples per symbol)
@@ -178,15 +172,14 @@ def create_random_snapshot(snapshot_bandwidth: int, sample_rate: int, snapshot_d
     min_frequency = -snapshot_bandwidth / 2
     max_frequency = snapshot_bandwidth / 2
     samples_in_snapshot = int(sample_rate * snapshot_duration.total_seconds())
+    time_signal = np.linspace(0, snapshot_duration.total_seconds(), samples_in_snapshot, endpoint=False)
     snapshot = np.zeros(samples_in_snapshot, dtype=np.complex128)
+    
     for _ in range(num_signals):
         # Randomly choose between FSK and PSK modulation
         function_to_call = random.choice([generate_random_fsk_signal, generate_random_psk_signal])
         carrier_frequency = random.uniform(min_frequency, max_frequency)
-        if random.random() < 0.5:
-            signal = function_to_call(sample_rate, snapshot_duration, carrier_frequency)
-        else:
-            signal = function_to_call(sample_rate, snapshot_duration, carrier_frequency)
+        signal = function_to_call(sample_rate, snapshot_duration, carrier_frequency, time_signal)
         snapshot += signal
         
     noise = np.random.normal(0, 0.0001, snapshot.shape)  # Add a small random noise
