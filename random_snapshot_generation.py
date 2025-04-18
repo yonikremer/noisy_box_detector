@@ -1,275 +1,228 @@
 """
-This module contains:
-- Functions to generate various modulated signals (FSK, PSK, QAM, ASK)
-- Function to create a snapshot of a signal by combining multiple signals with different carrier frequencies
+Signal Generation and Visualization Module
+
+This module provides functionality to generate various types of modulated signals
+(FSK, PSK, QAM, ASK) and visualize them in both time and frequency domains.
 """
+from dataclasses import dataclass
 import random
 from datetime import timedelta
+from typing import Tuple
 
 import numpy as np
-from scipy.signal.windows import hann
 import matplotlib.pyplot as plt
+from scipy.signal.windows import hann
 from scipy.fft import fft, fftshift
 
 
-def _select_modulation_type() -> callable:
-    """
-    Select a random modulation type for signal generation.
+@dataclass
+class SignalParameters:
+    """Parameters for signal generation."""
+    sample_rate: int  # Hz
+    snapshot_duration: timedelta
+    carrier_frequency: float  # Hz
+    time_signal: np.ndarray
     
-    Returns:
-        callable: The selected modulation function
-    """
-    modulations = [generate_random_fsk_signal, generate_random_psk_signal, generate_random_qam_signal, generate_random_ask_signal]
-    return random.choice(modulations)
-
-
-def _select_number_of_states() -> int:
-    """
-    Select the number of states for signal modulation.
-    For FSK: number of frequencies
-    For PSK: number of phase states
-    For QAM: number of constellation points
-    For ASK: number of amplitude levels
-    
-    Returns:
-        int: Number of states (2, 4, 8, 16, 32, or 64)
-    """
-    # Common modulation schemes: 2, 4, 8, 16, 32, 64 states
-    # Higher number of states = more bits per symbol but more sensitive to noise
-    return random.choice([2, 4, 8, 16, 32, 64])
-
-
-def _generate_signal_timing(snapshot_duration: timedelta, mean_duration_ms: float = 100) -> tuple[timedelta, timedelta]:
-    """
-    Generate start and end times for a signal within a snapshot.
-    
-    Args:
-        snapshot_duration (timedelta): Total duration of the snapshot
-        mean_duration_ms (float): Mean duration of the signal in milliseconds
+    def generate_signal_timing(self,
+                             mean_duration_ms: float = 100) -> Tuple[int, int]:
+        """
+        Generate start and end sample indices for a signal within a snapshot.
         
-    Returns:
-        tuple[timedelta, timedelta]: Start and end times for the signal
-    """
-    snapshot_duration_milliseconds = snapshot_duration.total_seconds() * 1000
-    
-    # Generate signal duration with exponential distribution favoring shorter signals
-    signal_duration_ms = np.random.exponential(mean_duration_ms)
-    
-    # Random start time anywhere in the snapshot
-    max_start_time_ms = snapshot_duration_milliseconds
-    start_time_milliseconds = random.uniform(0, max_start_time_ms)
-    start_time = timedelta(milliseconds=start_time_milliseconds)
-    
-    # Calculate end time, ensuring it doesn't exceed snapshot duration
-    end_time_milliseconds = min(start_time_milliseconds + signal_duration_ms, snapshot_duration_milliseconds)
-    end_time = timedelta(milliseconds=end_time_milliseconds)
-    
-    return start_time, end_time
+        Args:
+            snapshot_duration: Total duration of the snapshot
+            sample_rate: Sampling rate in Hz
+            mean_duration_ms: Mean duration of the signal in milliseconds
+        
+        Returns:
+            Tuple of start and end sample indices
+        """
+        snapshot_duration_ms = self.snapshot_duration.total_seconds() * 1000
+        signal_duration_ms = np.random.exponential(mean_duration_ms)
+        max_start_time_ms = snapshot_duration_ms
+        start_time_ms = random.uniform(0, max_start_time_ms)
+        
+        # Convert times to sample indices
+        start_sample = int(start_time_ms * self.sample_rate / 1000)
+        end_sample = int(min(start_time_ms + signal_duration_ms, snapshot_duration_ms) * self.sample_rate / 1000)
+        
+        return start_sample, end_sample
 
 
-def _apply_fade_window(signal: np.ndarray, start_idx: int, end_idx: int, sample_rate: int) -> None:
-    """
-    Apply fade-in and fade-out windows to a signal segment.
+class SignalGenerator:
+    """Base class for signal generation utilities."""
     
-    Args:
-        signal (np.ndarray): The signal to modify
-        start_idx (int): Start index of the segment
-        end_idx (int): End index of the segment
-        sample_rate (int): Sampling rate in Hz
-    """
-    fade_length = min(int(0.01 * sample_rate), (end_idx - start_idx) // 2)
-    if fade_length > 0:
-        fade_window = hann(2 * fade_length)[:fade_length]
-        signal[start_idx:start_idx + fade_length] *= fade_window
-        signal[end_idx - fade_length:end_idx] *= fade_window[::-1]
+    @staticmethod
+    def select_number_of_states() -> int:
+        """
+        Select the number of states for signal modulation.
+        
+        Returns:
+            int: Number of states (2, 4, 8, 16, 32, or 64)
+        """
+        return random.choice([2, 4, 8, 16, 32, 64])    
+
+    @staticmethod
+    def apply_fade_window(signal: np.ndarray, start_idx: int, end_idx: int, 
+                         sample_rate: int) -> None:
+        """
+        Apply fade-in and fade-out windows to a signal segment.
+        
+        Args:
+            signal: The signal to modify
+            start_idx: Start index of the segment
+            end_idx: End index of the segment
+            sample_rate: Sampling rate in Hz
+        """
+        fade_length = min(int(0.01 * sample_rate), (end_idx - start_idx) // 2)
+        if fade_length > 0:
+            fade_window = hann(2 * fade_length)[:fade_length]
+            signal[start_idx:start_idx + fade_length] *= fade_window
+            signal[end_idx - fade_length:end_idx] *= fade_window[::-1]
 
 
-def generate_random_fsk_signal(sample_rate: int, snapshot_duration: timedelta, carrier_frequency: float,
-                             time_signal: np.ndarray) -> np.ndarray:
+def generate_random_fsk_signal(params: SignalParameters) -> np.ndarray:
     """
     Generate a complex signal that randomly switches between different frequencies.
-
+    
     Args:
-        sample_rate (int): Sampling rate in Hz.
-        snapshot_duration (timedelta): Total duration of the snapshot in seconds.
-        carrier_frequency (float): Carrier frequency in Hz.
-        time_signal (np.ndarray): Pre-computed time signal array.
-
+        params: Signal generation parameters
+        
     Returns:
-        np.ndarray: The generated complex signal.
+        Generated complex signal
     """
     signal_bandwidth = random.gauss(20_000, 5_000)
-    start_time, end_time = _generate_signal_timing(snapshot_duration)
-    num_frequencies = _select_number_of_states()
-    signal = np.zeros_like(time_signal, dtype=np.complex128)
+    start_sample, end_sample = params.generate_signal_timing()
+    num_frequencies = SignalGenerator.select_number_of_states()
+    signal = np.zeros_like(params.time_signal, dtype=np.complex128)
 
-    spacing = signal_bandwidth / (num_frequencies - 1)  # Calculate the spacing between frequencies
-    frequencies = [carrier_frequency + i * spacing for i in range(num_frequencies)]  # Define the frequencies
-    samples_per_symbol = max(1, int(spacing * sample_rate))  # Ensure at least 1 sample per symbol
+    spacing = signal_bandwidth / (num_frequencies - 1)
+    frequencies = [params.carrier_frequency + i * spacing for i in range(num_frequencies)]
+    samples_per_symbol = max(1, int(spacing * params.sample_rate))
 
-    signal_first_sample = int(start_time.total_seconds() * sample_rate)
-    signal_last_sample = int(end_time.total_seconds() * sample_rate)
-
-    for start_idx in range(signal_first_sample, signal_last_sample, samples_per_symbol):
-        end_idx = min(start_idx + samples_per_symbol, signal_last_sample)
+    for start_idx in range(start_sample, end_sample, samples_per_symbol):
+        end_idx = min(start_idx + samples_per_symbol, end_sample)
         if end_idx <= start_idx:
             continue
 
         frequency = np.random.choice(frequencies)
-        sine_wave = np.sin(2 * np.pi * frequency * time_signal[start_idx:end_idx])
-        cosine_wave = np.cos(2 * np.pi * frequency * time_signal[start_idx:end_idx])
+        sine_wave = np.sin(2 * np.pi * frequency * params.time_signal[start_idx:end_idx])
+        cosine_wave = np.cos(2 * np.pi * frequency * params.time_signal[start_idx:end_idx])
         signal[start_idx:end_idx] = cosine_wave + 1j * sine_wave
 
-        _apply_fade_window(signal, start_idx, end_idx, sample_rate)
+        SignalGenerator.apply_fade_window(signal, start_idx, end_idx, params.sample_rate)
 
     return signal
 
 
-def generate_random_psk_signal(sample_rate: int, snapshot_duration: timedelta, carrier_frequency: float,
-                             time_signal: np.ndarray) -> np.ndarray:
+def generate_random_psk_signal(params: SignalParameters) -> np.ndarray:
     """
     Generate a complex signal that randomly switches between different phase states.
-
+    
     Args:
-        sample_rate (int): Sampling rate in Hz.
-        snapshot_duration (timedelta): Total duration of the snapshot in seconds.
-        carrier_frequency (float): Carrier frequency in Hz.
-        time_signal (np.ndarray): Pre-computed time signal array.
-
+        params: Signal generation parameters
+        
     Returns:
-        np.ndarray: The generated complex signal.
-    """    
-    start_time, end_time = _generate_signal_timing(snapshot_duration)
-    num_phase_states = _select_number_of_states()
+        Generated complex signal
+    """
+    start_sample, end_sample = params.generate_signal_timing()
+    num_phase_states = SignalGenerator.select_number_of_states()
     phase_states = np.linspace(0, 2 * np.pi, num_phase_states, endpoint=False)
-    signal = np.zeros_like(time_signal, dtype=np.complex128)
+    signal = np.zeros_like(params.time_signal, dtype=np.complex128)
     
-    # Calculate symbol duration (ensure at least 10 samples per symbol)
-    symbol_duration = max(10, int(sample_rate / (carrier_frequency / 10)))
+    symbol_duration = max(10, int(params.sample_rate / (params.carrier_frequency / 10)))
     
-    signal_first_sample = int(start_time.total_seconds() * sample_rate)
-    signal_last_sample = int(end_time.total_seconds() * sample_rate)
-    
-    for start_idx in range(signal_first_sample, signal_last_sample, symbol_duration):
-        end_idx = min(start_idx + symbol_duration, signal_last_sample)
+    for start_idx in range(start_sample, end_sample, symbol_duration):
+        end_idx = min(start_idx + symbol_duration, end_sample)
         if end_idx <= start_idx:
             continue
             
-        # Randomly select a phase state
         phase = np.random.choice(phase_states)
+        t = params.time_signal[start_idx:end_idx]
+        signal[start_idx:end_idx] = np.exp(1j * (2 * np.pi * params.carrier_frequency * t + phase))
         
-        # Generate the complex signal with the selected phase
-        t = time_signal[start_idx:end_idx]
-        signal[start_idx:end_idx] = np.exp(1j * (2 * np.pi * carrier_frequency * t + phase))
-        
-        _apply_fade_window(signal, start_idx, end_idx, sample_rate)
+        SignalGenerator.apply_fade_window(signal, start_idx, end_idx, params.sample_rate)
     
     return signal
 
 
-def generate_random_qam_signal(sample_rate: int, snapshot_duration: timedelta, carrier_frequency: float,
-                             time_signal: np.ndarray) -> np.ndarray:
+def generate_random_qam_signal(params: SignalParameters) -> np.ndarray:
     """
     Generate a complex signal using Quadrature Amplitude Modulation (QAM).
-    The signal randomly switches between different amplitude and phase states.
-
-    Args:
-        sample_rate (int): Sampling rate in Hz.
-        snapshot_duration (timedelta): Total duration of the snapshot in seconds.
-        carrier_frequency (float): Carrier frequency in Hz.
-        time_signal (np.ndarray): Pre-computed time signal array.
-
-    Returns:
-        np.ndarray: The generated complex signal.
-    """
-    start_time, end_time = _generate_signal_timing(snapshot_duration)
-    num_states = _select_number_of_states()
     
-    # Create a square QAM constellation
+    Args:
+        params: Signal generation parameters
+        
+    Returns:
+        Generated complex signal
+    """
+    start_sample, end_sample = SignalGenerator.generate_signal_timing(
+        params.snapshot_duration, params.sample_rate
+    )
+    num_states = SignalGenerator.select_number_of_states()
+    
     side_length = int(np.sqrt(num_states))
     if side_length ** 2 != num_states:
-        # If num_states is not a perfect square, round down to the nearest square
         side_length = int(np.sqrt(num_states))
         num_states = side_length ** 2
     
-    # Generate constellation points
     constellation = np.zeros(num_states, dtype=np.complex128)
     for i in range(side_length):
         for j in range(side_length):
-            # Normalize constellation to unit circle
             x = (2 * i - (side_length - 1)) / (side_length - 1)
             y = (2 * j - (side_length - 1)) / (side_length - 1)
             constellation[i * side_length + j] = x + 1j * y
     
-    signal = np.zeros_like(time_signal, dtype=np.complex128)
-    symbol_duration = max(10, int(sample_rate / (carrier_frequency / 10)))
+    signal = np.zeros_like(params.time_signal, dtype=np.complex128)
+    symbol_duration = max(10, int(params.sample_rate / (params.carrier_frequency / 10)))
     
-    signal_first_sample = int(start_time.total_seconds() * sample_rate)
-    signal_last_sample = int(end_time.total_seconds() * sample_rate)
-    
-    for start_idx in range(signal_first_sample, signal_last_sample, symbol_duration):
-        end_idx = min(start_idx + symbol_duration, signal_last_sample)
+    for start_idx in range(start_sample, end_sample, symbol_duration):
+        end_idx = min(start_idx + symbol_duration, end_sample)
         if end_idx <= start_idx:
             continue
         
-        # Select random constellation point
         constellation_point = np.random.choice(constellation)
+        t = params.time_signal[start_idx:end_idx]
+        signal[start_idx:end_idx] = constellation_point * np.exp(1j * 2 * np.pi * params.carrier_frequency * t)
         
-        # Generate the complex signal with the selected amplitude and phase
-        t = time_signal[start_idx:end_idx]
-        signal[start_idx:end_idx] = constellation_point * np.exp(1j * 2 * np.pi * carrier_frequency * t)
-        
-        _apply_fade_window(signal, start_idx, end_idx, sample_rate)
+        SignalGenerator.apply_fade_window(signal, start_idx, end_idx, params.sample_rate)
     
     return signal
 
 
-def generate_random_ask_signal(sample_rate: int, snapshot_duration: timedelta, carrier_frequency: float,
-                             time_signal: np.ndarray) -> np.ndarray:
+def generate_random_ask_signal(params: SignalParameters) -> np.ndarray:
     """
     Generate a complex signal using Amplitude Shift Keying (ASK).
-    The signal randomly switches between different amplitude levels.
-
+    
     Args:
-        sample_rate (int): Sampling rate in Hz.
-        snapshot_duration (timedelta): Total duration of the snapshot in seconds.
-        carrier_frequency (float): Carrier frequency in Hz.
-        time_signal (np.ndarray): Pre-computed time signal array.
-
+        params: Signal generation parameters
+        
     Returns:
-        np.ndarray: The generated complex signal.
+        Generated complex signal
     """
-    start_time, end_time = _generate_signal_timing(snapshot_duration)
-    num_levels = _select_number_of_states()
+    start_sample, end_sample = params.generate_signal_timing()
+    num_levels = SignalGenerator.select_number_of_states()
     
-    # Generate amplitude levels
-    amplitude_levels = np.linspace(0.2, 1.0, num_levels)  # Avoid zero amplitude
+    amplitude_levels = np.linspace(0.2, 1.0, num_levels)
     
-    signal = np.zeros_like(time_signal, dtype=np.complex128)
-    symbol_duration = max(10, int(sample_rate / (carrier_frequency / 10)))
+    signal = np.zeros_like(params.time_signal, dtype=np.complex128)
+    symbol_duration = max(10, int(params.sample_rate / (params.carrier_frequency / 10)))
     
-    signal_first_sample = int(start_time.total_seconds() * sample_rate)
-    signal_last_sample = int(end_time.total_seconds() * sample_rate)
-    
-    for start_idx in range(signal_first_sample, signal_last_sample, symbol_duration):
-        end_idx = min(start_idx + symbol_duration, signal_last_sample)
+    for start_idx in range(start_sample, end_sample, symbol_duration):
+        end_idx = min(start_idx + symbol_duration, end_sample)
         if end_idx <= start_idx:
             continue
         
-        # Select random amplitude level
         amplitude = np.random.choice(amplitude_levels)
+        t = params.time_signal[start_idx:end_idx]
+        signal[start_idx:end_idx] = amplitude * np.exp(1j * 2 * np.pi * params.carrier_frequency * t)
         
-        # Generate the complex signal with the selected amplitude
-        t = time_signal[start_idx:end_idx]
-        signal[start_idx:end_idx] = amplitude * np.exp(1j * 2 * np.pi * carrier_frequency * t)
-        
-        _apply_fade_window(signal, start_idx, end_idx, sample_rate)
+        SignalGenerator.apply_fade_window(signal, start_idx, end_idx, params.sample_rate)
     
     return signal
 
 
-def create_random_snapshot(snapshot_bandwidth: int, sample_rate: int, snapshot_duration: timedelta,
-                           num_signals: int) -> np.ndarray:
+def create_random_snapshot(snapshot_bandwidth: int, sample_rate: int, 
+                         snapshot_duration: timedelta, num_signals: int) -> np.ndarray:
     """
     Create a snapshot of a signal by combining multiple signals with random frequencies.
     Each signal can be FSK, PSK, QAM, or ASK modulated.
@@ -281,22 +234,28 @@ def create_random_snapshot(snapshot_bandwidth: int, sample_rate: int, snapshot_d
         num_signals: The number of signals to combine
         
     Returns:
-        np.ndarray: The combined signal snapshot
+        Combined signal snapshot
     """
     min_frequency = -snapshot_bandwidth / 2
     max_frequency = snapshot_bandwidth / 2
     samples_in_snapshot = int(sample_rate * snapshot_duration.total_seconds())
-    time_signal = np.linspace(0, snapshot_duration.total_seconds(), samples_in_snapshot, endpoint=False)
+    time_signal = np.linspace(0, snapshot_duration.total_seconds(), 
+                             samples_in_snapshot, endpoint=False)
     snapshot = np.zeros(samples_in_snapshot, dtype=np.complex128)
+    modulation_types = [generate_random_fsk_signal, generate_random_psk_signal, generate_random_qam_signal, generate_random_ask_signal]
     
     for _ in range(num_signals):
-        # Randomly choose modulation type and carrier frequency
-        function_to_call = _select_modulation_type()
-        carrier_frequency = random.uniform(min_frequency, max_frequency)
-        signal = function_to_call(sample_rate, snapshot_duration, carrier_frequency, time_signal)
+        params = SignalParameters(
+            sample_rate=sample_rate,
+            snapshot_duration=snapshot_duration,
+            carrier_frequency=random.uniform(min_frequency, max_frequency),
+            time_signal=time_signal
+        )
+        function_to_call = random.choice(modulation_types)
+        signal = function_to_call(params)
         snapshot += signal
         
-    noise = np.random.normal(0, 0.0001, snapshot.shape)  # Add a small random noise
+    noise = np.random.normal(0, 0.0001, snapshot.shape)
     snapshot += noise
     return snapshot
 
@@ -348,50 +307,32 @@ def plot_signal(signal: np.ndarray, sample_rate: int, title: str = "Signal") -> 
 
 
 def main():
-    """
-    Generate and plot random signals using different modulation schemes.
-    """
+    """Generate and plot random signals using different modulation schemes."""
     # Parameters for signal generation
     sample_rate = 1_000_000  # 1 MHz
     snapshot_duration = timedelta(milliseconds=100)  # 100 ms
     snapshot_bandwidth = 200_000  # 200 kHz
     
-    # Generate individual signals
+    # Generate time signal
     time_signal = np.linspace(0, snapshot_duration.total_seconds(), 
                              int(sample_rate * snapshot_duration.total_seconds()), 
                              endpoint=False)
     
-    # Generate and plot FSK signal
-    fsk_signal = generate_random_fsk_signal(
-        sample_rate, snapshot_duration, 
-        random.uniform(-snapshot_bandwidth/2, snapshot_bandwidth/2),
-        time_signal
-    )
-    plot_signal(fsk_signal, sample_rate, "FSK Signal")
-    
-    # Generate and plot PSK signal
-    psk_signal = generate_random_psk_signal(
-        sample_rate, snapshot_duration,
-        random.uniform(-snapshot_bandwidth/2, snapshot_bandwidth/2),
-        time_signal
-    )
-    plot_signal(psk_signal, sample_rate, "PSK Signal")
-    
-    # Generate and plot QAM signal
-    qam_signal = generate_random_qam_signal(
-        sample_rate, snapshot_duration,
-        random.uniform(-snapshot_bandwidth/2, snapshot_bandwidth/2),
-        time_signal
-    )
-    plot_signal(qam_signal, sample_rate, "QAM Signal")
-    
-    # Generate and plot ASK signal
-    ask_signal = generate_random_ask_signal(
-        sample_rate, snapshot_duration,
-        random.uniform(-snapshot_bandwidth/2, snapshot_bandwidth/2),
-        time_signal
-    )
-    plot_signal(ask_signal, sample_rate, "ASK Signal")
+    # Generate and plot individual signals
+    for modulation_type, title in [
+        (generate_random_fsk_signal, "FSK Signal"),
+        (generate_random_psk_signal, "PSK Signal"),
+        (generate_random_qam_signal, "QAM Signal"),
+        (generate_random_ask_signal, "ASK Signal")
+    ]:
+        params = SignalParameters(
+            sample_rate=sample_rate,
+            snapshot_duration=snapshot_duration,
+            carrier_frequency=random.uniform(-snapshot_bandwidth/2, snapshot_bandwidth/2),
+            time_signal=time_signal
+        )
+        signal = modulation_type(params)
+        plot_signal(signal, sample_rate, title)
     
     # Generate and plot combined snapshot
     snapshot = create_random_snapshot(
