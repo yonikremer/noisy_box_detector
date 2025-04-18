@@ -59,7 +59,18 @@ class SignalGenerator:
         Returns:
             int: Number of states (2, 4, 8, 16, 32, or 64)
         """
-        return random.choice([2, 4, 8, 16, 32, 64])    
+        return random.choice([2, 4, 8, 16, 32, 64])
+    
+    @staticmethod
+    def select_qam_number_of_states() -> int:
+        """
+        Select the number of states for QAM modulation.
+        QAM constellations must be perfect squares (4, 16, 64, 256, etc.)
+        
+        Returns:
+            int: Number of QAM states (4, 16, or 64)
+        """
+        return random.choice([4, 16, 64])  # Common QAM constellations
 
     @staticmethod
     def apply_fade_window(signal: np.ndarray, start_idx: int, end_idx: int, 
@@ -148,6 +159,8 @@ def generate_random_psk_signal(params: SignalParameters) -> np.ndarray:
 def generate_random_qam_signal(params: SignalParameters) -> np.ndarray:
     """
     Generate a complex signal using Quadrature Amplitude Modulation (QAM).
+    QAM constellations are arranged in a square grid, so the number of states
+    must be a perfect square (4, 16, 64, etc.).
     
     Args:
         params: Signal generation parameters
@@ -155,17 +168,13 @@ def generate_random_qam_signal(params: SignalParameters) -> np.ndarray:
     Returns:
         Generated complex signal
     """
-    start_sample, end_sample = SignalGenerator.generate_signal_timing(
-        params.snapshot_duration, params.sample_rate
-    )
-    num_states = SignalGenerator.select_number_of_states()
+    start_sample, end_sample = params.generate_signal_timing()
+    num_states = SignalGenerator.select_qam_number_of_states()  # Always returns a perfect square
     
-    side_length = int(np.sqrt(num_states))
-    if side_length ** 2 != num_states:
-        side_length = int(np.sqrt(num_states))
-        num_states = side_length ** 2
-    
+    side_length = int(np.sqrt(num_states))  # This will always be an integer
     constellation = np.zeros(num_states, dtype=np.complex128)
+    
+    # Create square constellation
     for i in range(side_length):
         for j in range(side_length):
             x = (2 * i - (side_length - 1)) / (side_length - 1)
