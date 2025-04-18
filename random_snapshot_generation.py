@@ -70,21 +70,18 @@ def _apply_fade_window(signal: np.ndarray, start_idx: int, end_idx: int, sample_
         signal[end_idx - fade_length:end_idx] *= fade_window[::-1]
 
 
-def generate_random_fsk_signal(sample_rate: int, snapshot_duration: timedelta, min_frequency: float,
-                               max_frequency: float) -> np.ndarray:
+def generate_random_fsk_signal(sample_rate: int, snapshot_duration: timedelta, carrier_frequency: float) -> np.ndarray:
     """
     Generate a complex signal that randomly switches between four equally spaced frequencies.
 
     Args:
         sample_rate (int): Sampling rate in Hz.
         snapshot_duration (timedelta): Total duration of the snapshot in seconds.
-        min_frequency (float): Minimum frequency in Hz.
-        max_frequency (float): Maximum frequency in Hz.
+        carrier_frequency (float): Carrier frequency in Hz.
 
     Returns:
         np.ndarray: The generated complex signal.
     """
-    base_frequency = random.uniform(min_frequency, max_frequency)
     signal_bandwidth = random.gauss(20_000, 5_000)
     
     start_time, end_time = _generate_signal_timing(snapshot_duration)
@@ -96,7 +93,7 @@ def generate_random_fsk_signal(sample_rate: int, snapshot_duration: timedelta, m
     signal = np.zeros_like(time_signal, dtype=np.complex128)
 
     spacing = signal_bandwidth / (num_frequencies - 1)  # Calculate the spacing between frequencies
-    frequencies = [base_frequency + i * spacing for i in range(num_frequencies)]  # Define the frequencies
+    frequencies = [carrier_frequency + i * spacing for i in range(num_frequencies)]  # Define the frequencies
     samples_per_symbol = max(1, int(spacing * sample_rate))  # Ensure at least 1 sample per symbol
 
     signal_first_sample = int(start_time.total_seconds() * sample_rate)
@@ -117,23 +114,18 @@ def generate_random_fsk_signal(sample_rate: int, snapshot_duration: timedelta, m
     return signal
 
 
-def generate_random_psk_signal(sample_rate: int, snapshot_duration: timedelta, min_frequency: float,
-                             max_frequency: float) -> np.ndarray:
+def generate_random_psk_signal(sample_rate: int, snapshot_duration: timedelta, carrier_frequency) -> np.ndarray:
     """
     Generate a complex signal that randomly switches between different phase states.
 
     Args:
         sample_rate (int): Sampling rate in Hz.
         snapshot_duration (timedelta): Total duration of the snapshot in seconds.
-        min_frequency (float): Minimum frequency in Hz.
-        max_frequency (float): Maximum frequency in Hz.
+        carrier_frequency (float): Carrier frequency in Hz.
 
     Returns:
         np.ndarray: The generated complex signal.
-    """
-    # Select carrier frequency
-    carrier_frequency = random.uniform(min_frequency, max_frequency)
-    
+    """    
     start_time, end_time = _generate_signal_timing(snapshot_duration)
     
     num_samples = int(sample_rate * snapshot_duration.total_seconds())
@@ -172,18 +164,31 @@ def create_random_snapshot(snapshot_bandwidth: int, sample_rate: int, snapshot_d
                            num_signals: int) -> np.ndarray:
     """
     Create a snapshot of a signal by combining multiple signals with random frequencies.
-    :param snapshot_bandwidth: Bandwidth of the snapshot
-    :param sample_rate: The sample rate of the snapshot
-    :param snapshot_duration: The duration of the snapshot
-    :param num_signals: The number of signals to combine
-    :return:
+    Each signal can be either FSK or PSK modulated.
+    
+    Args:
+        snapshot_bandwidth: Bandwidth of the snapshot
+        sample_rate: The sample rate of the snapshot
+        snapshot_duration: The duration of the snapshot
+        num_signals: The number of signals to combine
+        
+    Returns:
+        np.ndarray: The combined signal snapshot
     """
     min_frequency = -snapshot_bandwidth / 2
     max_frequency = snapshot_bandwidth / 2
     samples_in_snapshot = int(sample_rate * snapshot_duration.total_seconds())
     snapshot = np.zeros(samples_in_snapshot, dtype=np.complex128)
     for _ in range(num_signals):
-        snapshot += generate_random_fsk_signal(sample_rate, snapshot_duration, min_frequency, max_frequency)
+        # Randomly choose between FSK and PSK modulation
+        function_to_call = random.choice([generate_random_fsk_signal, generate_random_psk_signal])
+        carrier_frequency = random.uniform(min_frequency, max_frequency)
+        if random.random() < 0.5:
+            signal = function_to_call(sample_rate, snapshot_duration, carrier_frequency)
+        else:
+            signal = function_to_call(sample_rate, snapshot_duration, carrier_frequency)
+        snapshot += signal
+        
     noise = np.random.normal(0, 0.0001, snapshot.shape)  # Add a small random noise
     snapshot += noise
     return snapshot
