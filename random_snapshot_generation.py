@@ -140,7 +140,6 @@ def generate_random_psk_signal(sample_rate: int, snapshot_duration: timedelta, c
         np.ndarray: The generated complex signal.
     """    
     start_time, end_time = _generate_signal_timing(snapshot_duration)
-    # Number of phase states (2 for BPSK, 4 for QPSK, 8 for 8-PSK, etc.)
     num_phase_states = _select_number_of_states()
     phase_states = np.linspace(0, 2 * np.pi, num_phase_states, endpoint=False)
     signal = np.zeros_like(time_signal, dtype=np.complex128)
@@ -300,3 +299,106 @@ def create_random_snapshot(snapshot_bandwidth: int, sample_rate: int, snapshot_d
     noise = np.random.normal(0, 0.0001, snapshot.shape)  # Add a small random noise
     snapshot += noise
     return snapshot
+
+
+def plot_signal(signal: np.ndarray, sample_rate: int, title: str = "Signal") -> None:
+    """
+    Plot a complex signal in both time and frequency domains.
+    
+    Args:
+        signal (np.ndarray): Complex signal to plot
+        sample_rate (int): Sampling rate in Hz
+        title (str): Title for the plot
+    """
+    # Time domain plot
+    time = np.arange(len(signal)) / sample_rate
+    
+    plt.figure(figsize=(15, 10))
+    
+    # Plot real and imaginary parts
+    plt.subplot(3, 1, 1)
+    plt.plot(time, np.real(signal), label='Real')
+    plt.plot(time, np.imag(signal), label='Imaginary')
+    plt.title(f"{title} - Time Domain")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Amplitude")
+    plt.legend()
+    plt.grid(True)
+    
+    # Plot magnitude
+    plt.subplot(3, 1, 2)
+    plt.plot(time, np.abs(signal))
+    plt.title(f"{title} - Magnitude")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Magnitude")
+    plt.grid(True)
+    
+    # Frequency domain plot
+    plt.subplot(3, 1, 3)
+    freq = np.arange(-sample_rate/2, sample_rate/2, sample_rate/len(signal))
+    spectrum = fftshift(fft(signal))
+    plt.plot(freq, np.abs(spectrum))
+    plt.title(f"{title} - Frequency Domain")
+    plt.xlabel("Frequency (Hz)")
+    plt.ylabel("Magnitude")
+    plt.grid(True)
+    
+    plt.tight_layout()
+    plt.show()
+
+
+def main():
+    """
+    Generate and plot random signals using different modulation schemes.
+    """
+    # Parameters for signal generation
+    sample_rate = 1_000_000  # 1 MHz
+    snapshot_duration = timedelta(milliseconds=100)  # 100 ms
+    snapshot_bandwidth = 200_000  # 200 kHz
+    
+    # Generate individual signals
+    time_signal = np.linspace(0, snapshot_duration.total_seconds(), 
+                             int(sample_rate * snapshot_duration.total_seconds()), 
+                             endpoint=False)
+    
+    # Generate and plot FSK signal
+    fsk_signal = generate_random_fsk_signal(
+        sample_rate, snapshot_duration, 
+        random.uniform(-snapshot_bandwidth/2, snapshot_bandwidth/2),
+        time_signal
+    )
+    plot_signal(fsk_signal, sample_rate, "FSK Signal")
+    
+    # Generate and plot PSK signal
+    psk_signal = generate_random_psk_signal(
+        sample_rate, snapshot_duration,
+        random.uniform(-snapshot_bandwidth/2, snapshot_bandwidth/2),
+        time_signal
+    )
+    plot_signal(psk_signal, sample_rate, "PSK Signal")
+    
+    # Generate and plot QAM signal
+    qam_signal = generate_random_qam_signal(
+        sample_rate, snapshot_duration,
+        random.uniform(-snapshot_bandwidth/2, snapshot_bandwidth/2),
+        time_signal
+    )
+    plot_signal(qam_signal, sample_rate, "QAM Signal")
+    
+    # Generate and plot ASK signal
+    ask_signal = generate_random_ask_signal(
+        sample_rate, snapshot_duration,
+        random.uniform(-snapshot_bandwidth/2, snapshot_bandwidth/2),
+        time_signal
+    )
+    plot_signal(ask_signal, sample_rate, "ASK Signal")
+    
+    # Generate and plot combined snapshot
+    snapshot = create_random_snapshot(
+        snapshot_bandwidth, sample_rate, snapshot_duration, num_signals=5
+    )
+    plot_signal(snapshot, sample_rate, "Combined Signal Snapshot")
+
+
+if __name__ == "__main__":
+    main()
