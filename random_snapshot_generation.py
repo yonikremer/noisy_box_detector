@@ -97,6 +97,23 @@ class SignalGenerator:
             fade_window = hann(2 * fade_length)[:fade_length]
             signal[start_idx:start_idx + fade_length] *= fade_window
             signal[end_idx - fade_length:end_idx] *= fade_window[::-1]
+    
+    @staticmethod
+    def normalize_signal(signal: np.ndarray) -> np.ndarray:
+        """
+        Normalize a signal to have unit power.
+        
+        Args:
+            signal: The signal to normalize
+            
+        Returns:
+            Normalized signal with unit power
+        """
+        # Calculate signal power
+        power = np.mean(np.abs(signal) ** 2)
+        if power > 0:
+            return signal / power
+        return signal
 
 
 def generate_random_fsk_signal(params: SignalParameters) -> np.ndarray:
@@ -127,7 +144,7 @@ def generate_random_fsk_signal(params: SignalParameters) -> np.ndarray:
         signal[start_idx:end_idx] = np.exp(1j * phase)
         SignalGenerator.apply_fade_window(signal, start_idx, end_idx, params.sample_rate)
 
-    return signal
+    return SignalGenerator.normalize_signal(signal)
 
 
 def generate_random_psk_signal(params: SignalParameters) -> np.ndarray:
@@ -157,7 +174,7 @@ def generate_random_psk_signal(params: SignalParameters) -> np.ndarray:
         
         SignalGenerator.apply_fade_window(signal, start_idx, end_idx, params.sample_rate)
     
-    return signal
+    return SignalGenerator.normalize_signal(signal)
 
 
 def generate_random_qam_signal(params: SignalParameters) -> np.ndarray:
@@ -185,6 +202,8 @@ def generate_random_qam_signal(params: SignalParameters) -> np.ndarray:
             y = (2 * j - (side_length - 1)) / (side_length - 1)
             constellation[i * side_length + j] = x + 1j * y
     
+    constellation = SignalGenerator.normalize_signal(constellation)
+    
     signal = np.zeros_like(params.time_signal, dtype=np.complex128)
     symbol_duration = max(10, int(params.sample_rate / (params.carrier_frequency / 10)))
     
@@ -198,7 +217,7 @@ def generate_random_qam_signal(params: SignalParameters) -> np.ndarray:
         
         SignalGenerator.apply_fade_window(signal, start_idx, end_idx, params.sample_rate)
     
-    return signal
+    return SignalGenerator.normalize_signal(signal)
 
 
 def generate_random_ask_signal(params: SignalParameters) -> np.ndarray:
@@ -214,7 +233,9 @@ def generate_random_ask_signal(params: SignalParameters) -> np.ndarray:
     start_sample, end_sample = params.generate_signal_timing()
     num_levels = SignalGenerator.select_number_of_states()
     
+    # Generate amplitude levels and normalize to have unit average power
     amplitude_levels = np.linspace(0.2, 1.0, num_levels)
+    amplitude_levels = SignalGenerator.normalize_signal(amplitude_levels)
     
     signal = np.zeros_like(params.time_signal, dtype=np.complex128)
     symbol_duration = max(10, int(params.sample_rate / (params.carrier_frequency / 10)))
@@ -229,7 +250,7 @@ def generate_random_ask_signal(params: SignalParameters) -> np.ndarray:
         
         SignalGenerator.apply_fade_window(signal, start_idx, end_idx, params.sample_rate)
     
-    return signal
+    return SignalGenerator.normalize_signal(signal)
 
 
 def create_random_snapshot(snapshot_bandwidth: int, sample_rate: int, 
@@ -250,8 +271,6 @@ def create_random_snapshot(snapshot_bandwidth: int, sample_rate: int,
     min_frequency = -snapshot_bandwidth / 2
     max_frequency = snapshot_bandwidth / 2
     samples_in_snapshot = int(sample_rate * snapshot_duration.total_seconds())
-    time_signal = np.linspace(0, snapshot_duration.total_seconds(), 
-                             samples_in_snapshot, endpoint=False)
     snapshot = np.zeros(samples_in_snapshot, dtype=np.complex128)
     modulation_types = [generate_random_fsk_signal, generate_random_psk_signal, generate_random_qam_signal, generate_random_ask_signal]
     
@@ -265,8 +284,8 @@ def create_random_snapshot(snapshot_bandwidth: int, sample_rate: int,
         signal = function_to_call(params)
         snapshot += signal
         
-    noise = np.random.normal(0, 0.0001, snapshot.shape)
-    snapshot += noise
+    # noise = np.random.normal(0, 0.0001, snapshot.shape)
+    # snapshot += noise
     return snapshot
 
 
