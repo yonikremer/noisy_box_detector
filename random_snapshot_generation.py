@@ -363,6 +363,8 @@ def plot_signal(signal: np.ndarray, sample_rate: int, title: str = "Signal") -> 
     time = np.arange(len(signal)) / sample_rate
     
     plt.figure(figsize=(15, 10))
+    # Maximize the window
+    plt.get_current_fig_manager().window.state('zoomed')
     
     # Plot real and imaginary parts
     plt.subplot(3, 1, 1)
