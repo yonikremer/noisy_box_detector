@@ -13,6 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal.windows import hann
 from scipy.fft import fft, fftshift
+from scipy.signal import butter, filtfilt
 
 
 @dataclass
@@ -21,9 +22,13 @@ class SignalParameters:
     sample_rate: int  # Hz
     snapshot_duration: timedelta
     carrier_frequency: float  # Hz
+    bandwidth: float  # Hz
     
     def __post_init__(self):
         """Pre-compute common values used in signal generation."""
+        if self.bandwidth <= 0:
+            raise ValueError("Bandwidth must be greater than 0")
+        
         self.samples_in_snapshot = int(self.sample_rate * self.snapshot_duration.total_seconds())
         self.time_signal = np.linspace(0, self.snapshot_duration.total_seconds(), 
                              self.samples_in_snapshot, 
@@ -54,6 +59,32 @@ class SignalParameters:
         end_sample = int(min(start_time_ms + signal_duration_ms, self.snapshot_duration_ms) * self.sample_rate / 1000)
         
         return start_sample, end_sample
+    
+    def apply_bandpass_filter(self, signal: np.ndarray) -> np.ndarray:
+        """
+        Apply a lowpass filter to the baseband signal.
+        The signal should be centered around zero frequency.
+        
+        Args:
+            signal: The baseband signal to filter
+            
+        Returns:
+            Filtered signal
+        """
+        # Calculate normalized cutoff frequency
+        nyquist = self.sample_rate / 2
+        # For baseband signal, use lowpass filter with half bandwidth
+        cutoff = (self.bandwidth/2) / nyquist
+        
+        if cutoff <= 0:
+            raise ValueError("Cutoff frequency must be greater than 0")
+        if cutoff > 1:
+            raise ValueError("Cutoff frequency is greater than Nyquist frequency")
+        
+        # Design and apply Butterworth filter
+        order = 4  # Filter order
+        b, a = butter(order, cutoff, btype='lowpass')
+        return filtfilt(b, a, signal)
 
 
 class SignalGenerator:
@@ -126,14 +157,16 @@ def generate_random_fsk_signal(params: SignalParameters) -> np.ndarray:
     Returns:
         Generated complex signal
     """
-    signal_bandwidth = random.gauss(20_000, 5_000)
     start_sample, end_sample = params.generate_signal_timing()
     num_frequencies = SignalGenerator.select_number_of_states()
     signal = np.zeros_like(params.time_signal, dtype=np.complex128)
 
-    spacing = signal_bandwidth / (num_frequencies - 1)
-    frequencies = params.carrier_frequency + np.arange(num_frequencies) * spacing
-    samples_per_symbol = max(1, int(spacing * params.sample_rate))
+    spacing = params.bandwidth / (num_frequencies - 1)
+    # Generate frequencies around zero
+    frequencies = np.arange(-(num_frequencies-1)/2, (num_frequencies+1)/2) * spacing
+    
+    # Symbol duration based on bandwidth and number of frequencies
+    samples_per_symbol = int(params.sample_rate / (params.bandwidth / 2))
 
     for start_idx in range(start_sample, end_sample, samples_per_symbol):
         end_idx = min(start_idx + samples_per_symbol, end_sample)
@@ -144,7 +177,11 @@ def generate_random_fsk_signal(params: SignalParameters) -> np.ndarray:
         signal[start_idx:end_idx] = np.exp(1j * phase)
         SignalGenerator.apply_fade_window(signal, start_idx, end_idx, params.sample_rate)
 
-    return SignalGenerator.normalize_signal(signal)
+    signal = SignalGenerator.normalize_signal(signal)
+    # Apply bandpass filter to baseband signal
+    filtered_signal = params.apply_bandpass_filter(signal)
+    # Modulate with carrier frequency
+    return filtered_signal * np.exp(1j * params.carrier_phase)
 
 
 def generate_random_psk_signal(params: SignalParameters) -> np.ndarray:
@@ -162,19 +199,24 @@ def generate_random_psk_signal(params: SignalParameters) -> np.ndarray:
     phase_states = np.linspace(0, 2 * np.pi, num_phase_states, endpoint=False)
     signal = np.zeros_like(params.time_signal, dtype=np.complex128)
     
-    symbol_duration = max(10, int(params.sample_rate / (params.carrier_frequency / 10)))
+    # Symbol duration based on bandwidth
+    samples_per_symbol = int(params.sample_rate / params.bandwidth)
     
-    for start_idx in range(start_sample, end_sample, symbol_duration):
-        end_idx = min(start_idx + symbol_duration, end_sample)
+    for start_idx in range(start_sample, end_sample, samples_per_symbol):
+        end_idx = min(start_idx + samples_per_symbol, end_sample)
         if end_idx <= start_idx:
             continue
             
         phase = np.random.choice(phase_states)
-        signal[start_idx:end_idx] = np.exp(1j * (params.carrier_phase[start_idx:end_idx] + phase))
+        signal[start_idx:end_idx] = np.exp(1j * phase)
         
         SignalGenerator.apply_fade_window(signal, start_idx, end_idx, params.sample_rate)
     
-    return SignalGenerator.normalize_signal(signal)
+    signal = SignalGenerator.normalize_signal(signal)
+    # Apply bandpass filter to baseband signal
+    filtered_signal = params.apply_bandpass_filter(signal)
+    # Modulate with carrier frequency
+    return filtered_signal * np.exp(1j * params.carrier_phase)
 
 
 def generate_random_qam_signal(params: SignalParameters) -> np.ndarray:
@@ -195,7 +237,7 @@ def generate_random_qam_signal(params: SignalParameters) -> np.ndarray:
     side_length = int(np.sqrt(num_states))  # This will always be an integer
     constellation = np.zeros(num_states, dtype=np.complex128)
     
-    # Create square constellation
+    # Create square constellation centered around zero
     for i in range(side_length):
         for j in range(side_length):
             x = (2 * i - (side_length - 1)) / (side_length - 1)
@@ -205,19 +247,25 @@ def generate_random_qam_signal(params: SignalParameters) -> np.ndarray:
     constellation = SignalGenerator.normalize_signal(constellation)
     
     signal = np.zeros_like(params.time_signal, dtype=np.complex128)
-    symbol_duration = max(10, int(params.sample_rate / (params.carrier_frequency / 10)))
     
-    for start_idx in range(start_sample, end_sample, symbol_duration):
-        end_idx = min(start_idx + symbol_duration, end_sample)
+    # Symbol duration based on bandwidth and constellation size
+    samples_per_symbol = int(params.sample_rate / (params.bandwidth * np.log2(num_states)))
+    
+    for start_idx in range(start_sample, end_sample, samples_per_symbol):
+        end_idx = min(start_idx + samples_per_symbol, end_sample)
         if end_idx <= start_idx:
             continue
         
         constellation_point = np.random.choice(constellation)
-        signal[start_idx:end_idx] = constellation_point * np.exp(1j * params.carrier_phase[start_idx:end_idx])
+        signal[start_idx:end_idx] = constellation_point
         
         SignalGenerator.apply_fade_window(signal, start_idx, end_idx, params.sample_rate)
     
-    return SignalGenerator.normalize_signal(signal)
+    signal = SignalGenerator.normalize_signal(signal)
+    # Apply bandpass filter to baseband signal
+    filtered_signal = params.apply_bandpass_filter(signal)
+    # Modulate with carrier frequency
+    return filtered_signal * np.exp(1j * params.carrier_phase)
 
 
 def generate_random_ask_signal(params: SignalParameters) -> np.ndarray:
@@ -238,19 +286,25 @@ def generate_random_ask_signal(params: SignalParameters) -> np.ndarray:
     amplitude_levels = SignalGenerator.normalize_signal(amplitude_levels)
     
     signal = np.zeros_like(params.time_signal, dtype=np.complex128)
-    symbol_duration = max(10, int(params.sample_rate / (params.carrier_frequency / 10)))
     
-    for start_idx in range(start_sample, end_sample, symbol_duration):
-        end_idx = min(start_idx + symbol_duration, end_sample)
+    # Symbol duration based on bandwidth and number of levels
+    samples_per_symbol = int(params.sample_rate / (params.bandwidth * np.log2(num_levels)))
+    
+    for start_idx in range(start_sample, end_sample, samples_per_symbol):
+        end_idx = min(start_idx + samples_per_symbol, end_sample)
         if end_idx <= start_idx:
             continue
         
         amplitude = np.random.choice(amplitude_levels)
-        signal[start_idx:end_idx] = amplitude * np.exp(1j * params.carrier_phase[start_idx:end_idx])
+        signal[start_idx:end_idx] = amplitude
         
         SignalGenerator.apply_fade_window(signal, start_idx, end_idx, params.sample_rate)
     
-    return SignalGenerator.normalize_signal(signal)
+    signal = SignalGenerator.normalize_signal(signal)
+    # Apply bandpass filter to baseband signal
+    filtered_signal = params.apply_bandpass_filter(signal)
+    # Modulate with carrier frequency
+    return filtered_signal * np.exp(1j * params.carrier_phase)
 
 
 def create_random_snapshot(snapshot_bandwidth: int, sample_rate: int, 
@@ -275,10 +329,17 @@ def create_random_snapshot(snapshot_bandwidth: int, sample_rate: int,
     modulation_types = [generate_random_fsk_signal, generate_random_psk_signal, generate_random_qam_signal, generate_random_ask_signal]
     
     for _ in range(num_signals):
+        carrier_frequency = random.uniform(min_frequency, max_frequency)
+        print(f"Carrier frequency: {carrier_frequency}")
+        bandwidth = random.gauss(20_000, 15_000)
+        while bandwidth <= 0:
+            bandwidth = random.gauss(20_000, 15_000)
+        print(f"Bandwidth: {bandwidth}")
         params = SignalParameters(
             sample_rate=sample_rate,
             snapshot_duration=snapshot_duration,
-            carrier_frequency=random.uniform(min_frequency, max_frequency)
+            carrier_frequency=carrier_frequency,
+            bandwidth=bandwidth  # Typical bandwidth for each signal
         )
         function_to_call = random.choice(modulation_types)
         signal = function_to_call(params)
@@ -342,11 +403,6 @@ def main():
     snapshot_duration = timedelta(milliseconds=100)  # 100 ms
     snapshot_bandwidth = 200_000  # 200 kHz
     
-    # Generate time signal
-    time_signal = np.linspace(0, snapshot_duration.total_seconds(), 
-                             int(sample_rate * snapshot_duration.total_seconds()), 
-                             endpoint=False)
-    
     # Generate and plot individual signals
     for modulation_type, title in [
         (generate_random_fsk_signal, "FSK Signal"),
@@ -354,19 +410,28 @@ def main():
         (generate_random_qam_signal, "QAM Signal"),
         (generate_random_ask_signal, "ASK Signal")
     ]:
+        print(f"Modulation type: {title}")
+        bandwidth=random.gauss(20_000, 15_000)
+        while bandwidth <= 0:
+            bandwidth=random.gauss(20_000, 15_000)
+            
+        carrier_frequency = random.uniform(-snapshot_bandwidth/2, snapshot_bandwidth/2)
+        print(f"Carrier frequency: {carrier_frequency}")
+        print(f"Bandwidth: {bandwidth}")
         params = SignalParameters(
             sample_rate=sample_rate,
             snapshot_duration=snapshot_duration,
-            carrier_frequency=random.uniform(-snapshot_bandwidth/2, snapshot_bandwidth/2)
+            carrier_frequency=carrier_frequency,
+            bandwidth=bandwidth  # Typical bandwidth for each signal
         )
         signal = modulation_type(params)
         plot_signal(signal, sample_rate, title)
     
     # Generate and plot combined snapshot
-    snapshot = create_random_snapshot(
-        snapshot_bandwidth, sample_rate, snapshot_duration, num_signals=5
-    )
-    plot_signal(snapshot, sample_rate, "Combined Signal Snapshot")
+    # snapshot = create_random_snapshot(
+    #     snapshot_bandwidth, sample_rate, snapshot_duration, num_signals=5
+    # )
+    # plot_signal(snapshot, sample_rate, "Combined Signal Snapshot")
 
 
 if __name__ == "__main__":
