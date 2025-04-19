@@ -17,6 +17,9 @@ from scipy.fft import fft, fftshift
 from scipy.signal import butter, filtfilt
 
 
+MILLISECONDS_PER_SECOND = 1000
+
+
 def load_config(config_path: str = "data_configs.yaml") -> dict:
     """
     Load configuration from YAML file.
@@ -49,7 +52,7 @@ class SignalParameters:
         self.time_signal = np.linspace(0, self.snapshot_duration.total_seconds(), 
                              self.samples_in_snapshot, 
                              endpoint=False)
-        self.snapshot_duration_ms = self.snapshot_duration.total_seconds() * 1000
+        self.snapshot_duration_ms = self.snapshot_duration.total_seconds() * MILLISECONDS_PER_SECOND
         # pre-compute 2*pi*time_signal for FSK
         self.two_pi_time_signal = 2 * np.pi * self.time_signal
         # Pre-compute carrier phase for PSK/QAM
@@ -67,8 +70,8 @@ class SignalParameters:
         start_time_ms = random.uniform(0, max_start_time_ms)
         
         # Convert times to sample indices
-        start_sample = int(start_time_ms * self.sample_rate / 1000)
-        end_sample = int(min(start_time_ms + signal_duration_ms, self.snapshot_duration_ms) * self.sample_rate / 1000)
+        start_sample = int(start_time_ms * self.sample_rate / MILLISECONDS_PER_SECOND)
+        end_sample = int(min(start_time_ms + signal_duration_ms, self.snapshot_duration_ms) * self.sample_rate / MILLISECONDS_PER_SECOND)
         
         return start_sample, end_sample
     
