@@ -13,6 +13,13 @@ from signal_generation.modulation.base import Modulation
 from conftest import signal_params
 
 
+class ExampleModulation(Modulation):
+    """Concrete implementation of Modulation for testing."""
+
+    def generate_symbol(self, start_idx: int, end_idx: int) -> np.ndarray:
+        """Generate a test symbol."""
+        return np.ones(end_idx - start_idx)
+
 @pytest.fixture
 def test_modulation():
     """Create a test modulation instance."""
@@ -20,7 +27,7 @@ def test_modulation():
 
 
 @pytest.mark.parametrize(
-    "modulation_class", [FSKModulation, PSKModulation, QAMModulation, ASKModulation]
+    "modulation_class", [FSKModulation, PSKModulation, QAMModulation, ASKModulation, ExampleModulation]
 )
 def test_modulation_initialization(signal_params, modulation_class):
     """Test that modulation classes initialize correctly."""
@@ -29,7 +36,7 @@ def test_modulation_initialization(signal_params, modulation_class):
 
 
 @pytest.mark.parametrize(
-    "modulation_class", [FSKModulation, PSKModulation, QAMModulation, ASKModulation]
+    "modulation_class", [FSKModulation, PSKModulation, QAMModulation, ASKModulation, ExampleModulation]
 )
 def test_generate_signal(signal_params, modulation_class):
     """Test signal generation for each modulation type."""
@@ -115,14 +122,6 @@ def test_symbol_generation(signal_params, modulation_class):
     assert np.iscomplexobj(symbol) or isinstance(symbol, (float, int))
 
 
-class ExampleModulation(Modulation):
-    """Concrete implementation of Modulation for testing."""
-
-    def generate_symbol(self, start_idx: int, end_idx: int) -> np.ndarray:
-        """Generate a test symbol."""
-        return np.ones(end_idx - start_idx)
-
-
 def test_base_modulation_error_handling(test_modulation):
     """Test error handling in base modulation class."""
     # Create a valid SignalParameters instance
@@ -140,14 +139,13 @@ def test_base_modulation_error_handling(test_modulation):
 
     # Test invalid bandwidth in parameters
     with pytest.raises(ValueError, match="Bandwidth must be greater than 0"):
-        params = SignalParameters(
+        SignalParameters(
             sample_rate=1e6,
             snapshot_duration=timedelta(milliseconds=100),
             carrier_frequency=50000,
             bandwidth=0,  # Invalid bandwidth
             mean_signal_duration_ms=20,
         )
-        ExampleModulation(params)
 
 
 def test_base_modulation_abstract_method():
@@ -179,11 +177,6 @@ def test_normalize_signal_zero_power():
 
 def test_generate_signal_invalid_timing():
     """Test that generate_signal handles invalid timing correctly."""
-
-    class TestModulation(Modulation):
-        def generate_symbol(self, start_idx: int, end_idx: int) -> np.ndarray:
-            return np.ones(end_idx - start_idx)
-
     params = SignalParameters(
         sample_rate=1e6,
         snapshot_duration=timedelta(milliseconds=100),
@@ -192,7 +185,7 @@ def test_generate_signal_invalid_timing():
         mean_signal_duration_ms=20,
     )
 
-    mod = TestModulation(params)
+    mod = ExampleModulation(params)
     # Mock generate_signal_timing to return invalid indices
     mod.params.generate_signal_timing = lambda: (10, 5)
     signal = mod.generate_signal()
