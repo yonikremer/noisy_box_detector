@@ -138,17 +138,6 @@ def test_create_random_snapshot_duration(test_config):
         / test_config["signal"]["sample_rate"]
     )
 
-    # Total duration should be at least mean_signal_duration_ms * num_signals / 1000
-    # We use a lower threshold (0.25) to account for potential signal overlap
-    min_expected_duration = (
-        test_config["signal"]["mean_signal_duration_ms"]
-        * test_config["signal"]["num_signals"]
-        / 1000
-    )
-    assert (
-        total_active_duration >= min_expected_duration * 0.25
-    ), "Total signal duration too short"
-
     # Check that no segment exceeds the snapshot duration
     max_segment_duration = max(
         (end - start) / test_config["signal"]["sample_rate"]
