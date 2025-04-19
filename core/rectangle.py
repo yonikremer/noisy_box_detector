@@ -1,6 +1,6 @@
 import random
 from typing import Self
-
+from pydantic_core import ValidationError
 import yaml
 from matplotlib import pyplot as plt
 from pydantic import BaseModel, Field, model_validator
@@ -101,35 +101,14 @@ class Rectangle(BaseModel):
         y = random.randint(0, IMAGE_HEIGHT - MIN_RECTANGLE_HEIGHT)
         
         # Calculate maximum dimensions that will fit within bounds
-        max_width = IMAGE_WIDTH - x
-        if max_width < MIN_RECTANGLE_WIDTH:
-            raise ValueError("max_width is less than MIN_RECTANGLE_WIDTH")
-        max_height = IMAGE_HEIGHT - y
-        if max_height < MIN_RECTANGLE_HEIGHT:
-            raise ValueError("max_height is less than MIN_RECTANGLE_HEIGHT")
-        # Ensure we have valid ranges
-        if max_height < MIN_RECTANGLE_HEIGHT or max_width < MIN_RECTANGLE_WIDTH:
-            return cls.random()  # Try again if we can't fit minimum dimensions
+        max_width = min(IMAGE_WIDTH - x, IMAGE_WIDTH)
+        max_height = min(IMAGE_HEIGHT - y, IMAGE_HEIGHT, MAX_RECTANGLE_HEIGHT)
         
         # Generate random dimensions within valid ranges
         rect_width = random.randint(MIN_RECTANGLE_WIDTH, max_width)
         rect_height = random.randint(MIN_RECTANGLE_HEIGHT, max_height)
-        
-        # Create and validate rectangle
+
         rect = Rectangle(x=x, y=y, height=rect_height, length=rect_width)
-        
-        # Ensure minimum area requirement is met
-        while rect.area() < MIN_RECTANGLE_AREA:
-            # Try increasing either width or height while staying within bounds
-            if MIN_RECTANGLE_WIDTH < rect_width < max_width:
-                rect_width = min(rect_width + 1, max_width)
-            elif MIN_RECTANGLE_HEIGHT < rect_height < max_height:
-                rect_height = min(rect_height + 1, max_height)
-            else:
-                # If we can't increase either dimension, start over
-                return cls.random()
-            rect = Rectangle(x=x, y=y, height=rect_height, length=rect_width)
-        
         return rect
 
     def distance(self, other: Self) -> int:
@@ -176,3 +155,5 @@ class Rectangle(BaseModel):
 
     def to_csv_row(self):
         return ','.join(map(str, [self.x, self.length, self.middle_y(), self.height])) + '\n'
+
+
