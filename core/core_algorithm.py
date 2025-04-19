@@ -117,6 +117,16 @@ def preprocess(image):
     :param image: a black and white image with noise low-valued background and high-valued rectangles
     :return: a less noisy version of the image
     """
+    if image is None:
+        raise TypeError("Image is None")
+    if not isinstance(image, np.ndarray):
+        raise TypeError("Image is not a numpy array")
+    if image.ndim != 2:
+        raise ValueError("Image is not a 2D array")
+    if image.shape[0] == 0 or image.shape[1] == 0:
+        raise ValueError("Image is empty")
+
+
     blurred = cv2.GaussianBlur(image, (BLURRING_KERNEL_SIZE, BLURRING_KERNEL_SIZE), 0)
     # Convert to uint8 before thresholding
     max_value, min_value = blurred.max(), blurred.min()
