@@ -4,3 +4,14 @@ min_rectangle_width: 10
 min_rectangle_height: 10
 max_rectangle_height: 512
 min_rectangle_area: 200
+
+# Signal generation parameters
+signal:
+  sample_rate: 1000000  # 1 MHz
+  snapshot_duration_ms: 100  # 100 ms
+  snapshot_bandwidth: 200000  # 200 kHz
+  mean_signal_duration_ms: 100  # Mean duration for exponential distribution
+  mean_bandwidth: 20000  # Mean bandwidth for Gaussian distribution
+  bandwidth_std: 15000  # Standard deviation for bandwidth distribution
+  num_signals: 5  # Number of signals in combined snapshot
+  mean_duration_ms: 100  # Mean duration for exponential distribution

@@ -8,12 +8,27 @@ from dataclasses import dataclass
 import random
 from datetime import timedelta
 from typing import Tuple
+import yaml
 
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal.windows import hann
 from scipy.fft import fft, fftshift
 from scipy.signal import butter, filtfilt
+
+
+def load_config(config_path: str = "data_configs.yaml") -> dict:
+    """
+    Load configuration from YAML file.
+
+    Args:
+        config_path: Path to the YAML configuration file
+
+    Returns:
+        Dictionary containing configuration parameters
+    """
+    with open(config_path, 'r') as f:
+        return yaml.safe_load(f)
 
 
 @dataclass
@@ -23,6 +38,7 @@ class SignalParameters:
     snapshot_duration: timedelta
     carrier_frequency: float  # Hz
     bandwidth: float  # Hz
+    mean_signal_duration_ms: float  # Mean duration for exponential distribution
     
     def __post_init__(self):
         """Pre-compute common values used in signal generation."""
@@ -39,18 +55,14 @@ class SignalParameters:
         # Pre-compute carrier phase for PSK/QAM
         self.carrier_phase = self.two_pi_time_signal * self.carrier_frequency
 
-    def generate_signal_timing(self,
-                             mean_duration_ms: float = 100) -> Tuple[int, int]:
+    def generate_signal_timing(self) -> Tuple[int, int]:
         """
         Generate start and end sample indices for a signal within a snapshot.
-        
-        Args:
-            mean_duration_ms: Mean duration of the signal in milliseconds
         
         Returns:
             Tuple of start and end sample indices
         """
-        signal_duration_ms = np.random.exponential(mean_duration_ms)
+        signal_duration_ms = np.random.exponential(self.mean_signal_duration_ms)
         max_start_time_ms = self.snapshot_duration_ms
         start_time_ms = random.uniform(0, max_start_time_ms)
         
@@ -166,7 +178,7 @@ def generate_random_fsk_signal(params: SignalParameters) -> np.ndarray:
     frequencies = np.arange(-(num_frequencies-1)/2, (num_frequencies+1)/2) * spacing
     
     # Symbol duration based on bandwidth and number of frequencies
-    samples_per_symbol = int(params.sample_rate / (params.bandwidth / 2))
+    samples_per_symbol = int(params.sample_rate / params.bandwidth)
 
     for start_idx in range(start_sample, end_sample, samples_per_symbol):
         end_idx = min(start_idx + samples_per_symbol, end_sample)
@@ -307,21 +319,21 @@ def generate_random_ask_signal(params: SignalParameters) -> np.ndarray:
     return filtered_signal * np.exp(1j * params.carrier_phase)
 
 
-def create_random_snapshot(snapshot_bandwidth: int, sample_rate: int, 
-                         snapshot_duration: timedelta, num_signals: int) -> np.ndarray:
+def create_random_snapshot(signal_config: dict) -> np.ndarray:
     """
     Create a snapshot of a signal by combining multiple signals with random frequencies.
     Each signal can be FSK, PSK, QAM, or ASK modulated.
     
     Args:
-        snapshot_bandwidth: Bandwidth of the snapshot
-        sample_rate: The sample rate of the snapshot
-        snapshot_duration: The duration of the snapshot
-        num_signals: The number of signals to combine
+        signal_config: Dictionary containing signal generation parameters
         
     Returns:
         Combined signal snapshot
     """
+    sample_rate = signal_config['sample_rate']
+    snapshot_bandwidth = signal_config['snapshot_bandwidth']
+    snapshot_duration = timedelta(milliseconds=signal_config['snapshot_duration_ms'])
+    num_signals = signal_config['num_signals']
     min_frequency = -snapshot_bandwidth / 2
     max_frequency = snapshot_bandwidth / 2
     samples_in_snapshot = int(sample_rate * snapshot_duration.total_seconds())
@@ -331,15 +343,16 @@ def create_random_snapshot(snapshot_bandwidth: int, sample_rate: int,
     for _ in range(num_signals):
         carrier_frequency = random.uniform(min_frequency, max_frequency)
         print(f"Carrier frequency: {carrier_frequency}")
-        bandwidth = random.gauss(20_000, 15_000)
+        bandwidth = random.gauss(signal_config['mean_bandwidth'], signal_config['bandwidth_std'])
         while bandwidth <= 0:
-            bandwidth = random.gauss(20_000, 15_000)
+            bandwidth = random.gauss(signal_config['mean_bandwidth'], signal_config['bandwidth_std'])
         print(f"Bandwidth: {bandwidth}")
         params = SignalParameters(
             sample_rate=sample_rate,
             snapshot_duration=snapshot_duration,
             carrier_frequency=carrier_frequency,
-            bandwidth=bandwidth  # Typical bandwidth for each signal
+            bandwidth=bandwidth,
+            mean_signal_duration_ms=signal_config['mean_signal_duration_ms']
         )
         function_to_call = random.choice(modulation_types)
         signal = function_to_call(params)
@@ -400,10 +413,14 @@ def plot_signal(signal: np.ndarray, sample_rate: int, title: str = "Signal") -> 
 
 def main():
     """Generate and plot random signals using different modulation schemes."""
+    # Load configuration
+    config = load_config()
+    signal_config = config['signal']
+    
     # Parameters for signal generation
-    sample_rate = 1_000_000  # 1 MHz
-    snapshot_duration = timedelta(milliseconds=100)  # 100 ms
-    snapshot_bandwidth = 200_000  # 200 kHz
+    sample_rate = signal_config['sample_rate']
+    snapshot_duration = timedelta(milliseconds=signal_config['snapshot_duration_ms'])
+    snapshot_bandwidth = signal_config['snapshot_bandwidth']
     
     # Generate and plot individual signals
     for modulation_type, title in [
@@ -413,9 +430,9 @@ def main():
         (generate_random_ask_signal, "ASK Signal")
     ]:
         print(f"Modulation type: {title}")
-        bandwidth=random.gauss(20_000, 15_000)
+        bandwidth = random.gauss(signal_config['mean_bandwidth'], signal_config['bandwidth_std'])
         while bandwidth <= 0:
-            bandwidth=random.gauss(20_000, 15_000)
+            bandwidth = random.gauss(signal_config['mean_bandwidth'], signal_config['bandwidth_std'])
             
         carrier_frequency = random.uniform(-snapshot_bandwidth/2, snapshot_bandwidth/2)
         print(f"Carrier frequency: {carrier_frequency}")
@@ -424,14 +441,15 @@ def main():
             sample_rate=sample_rate,
             snapshot_duration=snapshot_duration,
             carrier_frequency=carrier_frequency,
-            bandwidth=bandwidth  # Typical bandwidth for each signal
+            bandwidth=bandwidth,
+            mean_signal_duration_ms=signal_config['mean_signal_duration_ms']
         )
         signal = modulation_type(params)
         plot_signal(signal, sample_rate, title)
     
     # Generate and plot combined snapshot
     snapshot = create_random_snapshot(
-        snapshot_bandwidth, sample_rate, snapshot_duration, num_signals=5
+        signal_config=signal_config
     )
     plot_signal(snapshot, sample_rate, "Combined Signal Snapshot")
 
