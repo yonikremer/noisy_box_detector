@@ -102,8 +102,11 @@ class Rectangle(BaseModel):
         
         # Calculate maximum dimensions that will fit within bounds
         max_width = IMAGE_WIDTH - x
-        max_height = min(IMAGE_HEIGHT - y, MAX_RECTANGLE_HEIGHT)  # Take both constraints into account
-        
+        if max_width < MIN_RECTANGLE_WIDTH:
+            raise ValueError("max_width is less than MIN_RECTANGLE_WIDTH")
+        max_height = IMAGE_HEIGHT - y
+        if max_height < MIN_RECTANGLE_HEIGHT:
+            raise ValueError("max_height is less than MIN_RECTANGLE_HEIGHT")
         # Ensure we have valid ranges
         if max_height < MIN_RECTANGLE_HEIGHT or max_width < MIN_RECTANGLE_WIDTH:
             return cls.random()  # Try again if we can't fit minimum dimensions
@@ -118,9 +121,9 @@ class Rectangle(BaseModel):
         # Ensure minimum area requirement is met
         while rect.area() < MIN_RECTANGLE_AREA:
             # Try increasing either width or height while staying within bounds
-            if rect_width < max_width:
+            if MIN_RECTANGLE_WIDTH < rect_width < max_width:
                 rect_width = min(rect_width + 1, max_width)
-            elif rect_height < max_height:
+            elif MIN_RECTANGLE_HEIGHT < rect_height < max_height:
                 rect_height = min(rect_height + 1, max_height)
             else:
                 # If we can't increase either dimension, start over
