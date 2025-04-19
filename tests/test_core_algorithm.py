@@ -206,11 +206,11 @@ def test_preprocess_error_handling():
     # Test with invalid image dimensions
     with pytest.raises(ValueError):
         preprocess(np.array([[1, 2], [3, 4, 5]]))
-        
+
     # Test with invalid image type
     with pytest.raises(TypeError):
         preprocess("not an image")
-        
+
     # Test with invalid image shape
     with pytest.raises(ValueError):
         preprocess(np.array([[]]))
@@ -243,5 +243,9 @@ def test_contours_to_rectangles_error_handling():
     assert contours_to_rectangles([], invalid_hierarchy) == []
 
     # Test with invalid contour
-    invalid_contour = np.array([[0, 0], [0, 0], [0, 0], [0, 0]])  # Too small to form a rectangle
-    assert contours_to_rectangles([invalid_contour], np.array([[[-1, -1, -1, -1]]])) == []
+    invalid_contour = np.array(
+        [[0, 0], [0, 0], [0, 0], [0, 0]]
+    )  # Too small to form a rectangle
+    assert (
+        contours_to_rectangles([invalid_contour], np.array([[[-1, -1, -1, -1]]])) == []
+    )

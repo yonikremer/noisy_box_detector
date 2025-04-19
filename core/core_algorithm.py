@@ -126,7 +126,6 @@ def preprocess(image):
     if image.shape[0] == 0 or image.shape[1] == 0:
         raise ValueError("Image is empty")
 
-
     blurred = cv2.GaussianBlur(image, (BLURRING_KERNEL_SIZE, BLURRING_KERNEL_SIZE), 0)
     # Convert to uint8 before thresholding
     max_value, min_value = blurred.max(), blurred.min()
