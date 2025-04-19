@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import random
 from datetime import timedelta
-from typing import Tuple, List, Callable
+from typing import Tuple
 import yaml
 
 import numpy as np
