@@ -4,7 +4,7 @@ import yaml
 from pydantic import ValidationError
 from logging import debug
 
-from rectangle import Rectangle
+from .rectangle import Rectangle
 
 MAX_UINT8 = 255
 
