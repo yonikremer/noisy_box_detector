@@ -1,0 +1,127 @@
+"""Tests for modulation classes."""
+
+import pytest
+import numpy as np
+from datetime import timedelta
+from signal_generation.utils.parameters import SignalParameters
+from signal_generation.modulation.fsk import FSKModulation
+from signal_generation.modulation.psk import PSKModulation
+from signal_generation.modulation.qam import QAMModulation
+from signal_generation.modulation.ask import ASKModulation
+
+
+@pytest.fixture
+def signal_params():
+    """Create a basic SignalParameters instance for testing."""
+    return SignalParameters(
+        sample_rate=1000000,  # 1 MHz
+        snapshot_duration=timedelta(milliseconds=100),  # 100 ms
+        carrier_frequency=50000,  # 50 kHz
+        bandwidth=20000,  # 20 kHz
+        mean_signal_duration_ms=20,  # 20 ms
+    )
+
+
+@pytest.mark.parametrize("modulation_class", [
+    FSKModulation,
+    PSKModulation,
+    QAMModulation,
+    ASKModulation
+])
+def test_modulation_initialization(signal_params, modulation_class):
+    """Test that modulation classes initialize correctly."""
+    modulation = modulation_class(signal_params)
+    assert modulation.params == signal_params
+
+
+@pytest.mark.parametrize("modulation_class", [
+    FSKModulation,
+    PSKModulation,
+    QAMModulation,
+    ASKModulation
+])
+def test_generate_signal(signal_params, modulation_class):
+    """Test signal generation for each modulation type."""
+    modulation = modulation_class(signal_params)
+    signal = modulation.generate_signal()
+    
+    # Check signal properties
+    assert isinstance(signal, np.ndarray)
+    assert signal.dtype == np.complex128
+    assert len(signal) == signal_params.samples_in_snapshot
+    
+    # Check signal power is normalized
+    avg_power = np.mean(np.abs(signal) ** 2)
+    assert np.isclose(avg_power, 1.0, rtol=0.1)
+
+
+def test_fsk_frequencies(signal_params):
+    """Test FSK frequency generation."""
+    fsk = FSKModulation(signal_params)
+    
+    # Check number of frequencies
+    assert len(fsk.frequencies) == fsk.num_frequencies
+    
+    # Check frequency spacing
+    freq_spacing = signal_params.bandwidth / (fsk.num_frequencies - 1)
+    assert np.allclose(np.diff(fsk.frequencies), freq_spacing)
+
+
+def test_psk_phases(signal_params):
+    """Test PSK phase generation."""
+    psk = PSKModulation(signal_params)
+    
+    # Check number of phases
+    assert len(psk.phase_states) == psk.num_phase_states
+    
+    # Check phase spacing
+    phase_spacing = 2 * np.pi / psk.num_phase_states
+    assert np.allclose(np.diff(psk.phase_states), phase_spacing)
+
+
+def test_qam_constellation(signal_params):
+    """Test QAM constellation generation."""
+    qam = QAMModulation(signal_params)
+    
+    # Check constellation size
+    assert len(qam.constellation) == qam.num_states
+    
+    # Check constellation power
+    avg_power = np.mean(np.abs(qam.constellation) ** 2)
+    assert np.isclose(avg_power, 1.0, rtol=0.1)
+
+
+def test_ask_levels(signal_params):
+    """Test ASK level generation."""
+    ask = ASKModulation(signal_params)
+    
+    # Check number of levels
+    assert len(ask.amplitude_levels) == ask.num_levels
+    
+    # Check levels are sorted
+    assert np.all(np.diff(ask.amplitude_levels) >= 0)
+    
+    # Check level normalization
+    avg_power = np.mean(np.abs(ask.amplitude_levels) ** 2)
+    assert np.isclose(avg_power, 1.0, rtol=0.1)
+
+
+@pytest.mark.parametrize("modulation_class", [
+    FSKModulation,
+    PSKModulation,
+    QAMModulation,
+    ASKModulation
+])
+def test_symbol_generation(signal_params, modulation_class):
+    """Test symbol generation for each modulation type."""
+    modulation = modulation_class(signal_params)
+    start_idx = 0
+    end_idx = int(signal_params.sample_rate * 0.001)  # 1ms worth of samples
+    
+    symbol = modulation.generate_symbol(start_idx, end_idx)
+    
+    # Check symbol properties
+    assert isinstance(symbol, (np.ndarray, np.number))
+    if isinstance(symbol, np.ndarray):
+        assert len(symbol) == 1 or len(symbol) == end_idx - start_idx
+    assert np.iscomplexobj(symbol) or isinstance(symbol, (float, int)) 
