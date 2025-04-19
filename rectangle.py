@@ -4,6 +4,7 @@ from typing import Self
 import yaml
 from matplotlib import pyplot as plt
 from pydantic import BaseModel, Field, model_validator
+import numpy as np
 
 with open("data_configs.yaml") as f:
     configs = yaml.load(f, Loader=yaml.FullLoader)
@@ -94,12 +95,32 @@ class Rectangle(BaseModel):
 
     @classmethod
     def random(cls):
-        x = random.randint(0, IMAGE_WIDTH - MIN_RECTANGLE_WIDTH)
-        y = random.randint(0, IMAGE_HEIGHT - MIN_RECTANGLE_HEIGHT)
+        """
+        Generate a random valid rectangle.
+        The rectangle will satisfy all constraints:
+        - Within image bounds
+        - Minimum and maximum height/width
+        - Minimum area
+        """
+        # Calculate minimum side length to satisfy area requirement
+        min_side = int(np.ceil(np.sqrt(MIN_RECTANGLE_AREA)))
+        
+        # Adjust minimum dimensions to satisfy area requirement
+        min_width = max(MIN_RECTANGLE_WIDTH, min_side)
+        min_height = max(MIN_RECTANGLE_HEIGHT, min_side)
+        
+        # Generate random position
+        x = random.randint(0, IMAGE_WIDTH - min_width)
+        y = random.randint(0, IMAGE_HEIGHT - min_height)
+        
+        # Calculate maximum dimensions
         max_width = IMAGE_WIDTH - x
         max_height = min(IMAGE_HEIGHT - y, MAX_RECTANGLE_HEIGHT)
-        rect_width = random.randint(MIN_RECTANGLE_WIDTH, max_width - 1)
-        rect_height = random.randint(MIN_RECTANGLE_HEIGHT, max_height - 1)
+        
+        # Generate random dimensions that satisfy area requirement
+        rect_width = random.randint(min_width, max_width - 1)
+        rect_height = random.randint(min_height, max_height - 1)
+        
         return Rectangle(x=x, y=y, height=rect_height, length=rect_width)
 
     def distance(self, other: Self) -> int:
