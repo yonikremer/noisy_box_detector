@@ -240,8 +240,14 @@ def test_validate_max_x():
     with pytest.raises(ValidationError):
         Rectangle(x=IMAGE_WIDTH - 1, y=0, height=10, length=2)
 
+    with pytest.raises(ValidationError):
+        Rectangle(x=IMAGE_WIDTH - 1, y=0, height=10, length=100)
+
 
 def test_validate_max_y():
     """Test that validate_max_y raises ValueError when y + height >= IMAGE_HEIGHT."""
     with pytest.raises(ValidationError):
         Rectangle(x=0, y=IMAGE_HEIGHT - 1, height=2, length=10)
+
+    with pytest.raises(ValidationError):
+        Rectangle(x=0, y=IMAGE_HEIGHT - 1, height=100, length=10)
