@@ -76,7 +76,7 @@ class Modulation(ABC):
         # Calculate signal power
         power = np.mean(np.abs(signal) ** 2)
         if power > 0:
-            return signal / power
+            return signal / np.sqrt(power)  # Use sqrt to get unit power
         return signal
 
     def generate_signal(self) -> np.ndarray:
@@ -105,4 +105,6 @@ class Modulation(ABC):
         # Apply bandpass filter to baseband signal
         filtered_signal = self.params.apply_bandpass_filter(signal)
         # Modulate with carrier frequency
-        return filtered_signal * np.exp(1j * self.params.carrier_phase)
+        modulated_signal = filtered_signal * np.exp(1j * self.params.carrier_phase)
+        # Normalize the final signal
+        return self.normalize_signal(modulated_signal)
