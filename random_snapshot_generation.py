@@ -116,8 +116,17 @@ class SignalParameters:
         return filtfilt(b, a, signal)
 
 
-class SignalGenerator:
-    """Base class for signal generation utilities."""
+class Modulation(ABC):
+    """Base class for signal modulation."""
+
+    def __init__(self, params: "SignalParameters"):
+        """
+        Initialize modulation with signal parameters.
+
+        Args:
+            params: Signal generation parameters
+        """
+        self.params = params
 
     @staticmethod
     def select_number_of_states() -> int:
@@ -129,16 +138,19 @@ class SignalGenerator:
         """
         return random.choice([2, 4, 8, 16, 32, 64])
 
-    @staticmethod
-    def select_qam_number_of_states() -> int:
+    @abstractmethod
+    def generate_symbol(self, start_idx: int, end_idx: int) -> np.ndarray:
         """
-        Select the number of states for QAM modulation.
-        QAM constellations must be perfect squares (4, 16, 64, 256, etc.)
+        Generate a symbol for the given time range.
+
+        Args:
+            start_idx: Start index of the symbol
+            end_idx: End index of the symbol
 
         Returns:
-            int: Number of QAM states (4, 16, or 64)
+            Complex signal for the symbol
         """
-        return random.choice([4, 16, 64])  # Common QAM constellations
+        raise NotImplementedError("Subclasses must implement generate_symbol")
 
     @staticmethod
     def apply_fade_window(
@@ -176,33 +188,6 @@ class SignalGenerator:
             return signal / power
         return signal
 
-
-class Modulation(ABC):
-    """Base class for signal modulation."""
-
-    def __init__(self, params: "SignalParameters"):
-        """
-        Initialize modulation with signal parameters.
-
-        Args:
-            params: Signal generation parameters
-        """
-        self.params = params
-
-    @abstractmethod
-    def generate_symbol(self, start_idx: int, end_idx: int) -> np.ndarray:
-        """
-        Generate a symbol for the given time range.
-
-        Args:
-            start_idx: Start index of the symbol
-            end_idx: End index of the symbol
-
-        Returns:
-            Complex signal for the symbol
-        """
-        raise NotImplementedError("Subclasses must implement generate_symbol")
-
     def generate_signal(self) -> np.ndarray:
         """
         Generate a complete modulated signal.
@@ -223,11 +208,9 @@ class Modulation(ABC):
 
             symbol = self.generate_symbol(start_idx, end_idx)
             signal[start_idx:end_idx] = symbol
-            SignalGenerator.apply_fade_window(
-                signal, start_idx, end_idx, self.params.sample_rate
-            )
+            self.apply_fade_window(signal, start_idx, end_idx, self.params.sample_rate)
 
-        signal = SignalGenerator.normalize_signal(signal)
+        signal = self.normalize_signal(signal)
         # Apply bandpass filter to baseband signal
         filtered_signal = self.params.apply_bandpass_filter(signal)
         # Modulate with carrier frequency
@@ -239,7 +222,7 @@ class FSKModulation(Modulation):
 
     def __init__(self, params: "SignalParameters"):
         super().__init__(params)
-        self.num_frequencies = SignalGenerator.select_number_of_states()
+        self.num_frequencies = self.select_number_of_states()
         spacing = params.bandwidth / (self.num_frequencies - 1)
         # Generate frequencies around zero
         self.frequencies = (
@@ -258,7 +241,7 @@ class PSKModulation(Modulation):
 
     def __init__(self, params: "SignalParameters"):
         super().__init__(params)
-        self.num_phase_states = SignalGenerator.select_number_of_states()
+        self.num_phase_states = self.select_number_of_states()
         self.phase_states = np.linspace(
             0, 2 * np.pi, self.num_phase_states, endpoint=False
         )
@@ -273,8 +256,19 @@ class QAMModulation(Modulation):
 
     def __init__(self, params: "SignalParameters"):
         super().__init__(params)
-        self.num_states = SignalGenerator.select_qam_number_of_states()
+        self.num_states = self.select_number_of_states()
         self.constellation = self._create_constellation()
+
+    @staticmethod
+    def select_number_of_states() -> int:
+        """
+        Select the number of states for QAM modulation.
+        QAM constellations must be perfect squares (4, 16, 64, 256, etc.)
+
+        Returns:
+            int: Number of QAM states (4, 16, or 64)
+        """
+        return random.choice([4, 16, 64])  # Common QAM constellations
 
     def _create_constellation(self) -> np.ndarray:
         """Create a square constellation of points."""
@@ -287,7 +281,7 @@ class QAMModulation(Modulation):
                 y = (2 * j - (side_length - 1)) / (side_length - 1)
                 constellation[i * side_length + j] = x + 1j * y
 
-        return SignalGenerator.normalize_signal(constellation)
+        return self.normalize_signal(constellation)
 
     def generate_symbol(self, start_idx: int, end_idx: int) -> np.ndarray:
         return np.random.choice(self.constellation)
@@ -298,10 +292,10 @@ class ASKModulation(Modulation):
 
     def __init__(self, params: "SignalParameters"):
         super().__init__(params)
-        self.num_levels = SignalGenerator.select_number_of_states()
+        self.num_levels = self.select_number_of_states()
         # Generate amplitude levels and normalize to have unit average power
         self.amplitude_levels = np.linspace(0.2, 1.0, self.num_levels)
-        self.amplitude_levels = SignalGenerator.normalize_signal(self.amplitude_levels)
+        self.amplitude_levels = self.normalize_signal(self.amplitude_levels)
 
     def generate_symbol(self, start_idx: int, end_idx: int) -> np.ndarray:
         return np.random.choice(self.amplitude_levels)
