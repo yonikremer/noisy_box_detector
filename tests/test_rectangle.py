@@ -192,7 +192,7 @@ def test_rectangle_intersection_area():
 
 def test_rectangle_random():
     # Test multiple random rectangles
-    for _ in range(100):
+    for _ in range(10000):
         rect = Rectangle.random()
         assert 0 <= rect.x < IMAGE_WIDTH
         assert 0 <= rect.y < IMAGE_HEIGHT
