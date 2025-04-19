@@ -3,7 +3,7 @@ from pydantic import ValidationError
 import numpy as np
 from matplotlib import pyplot as plt
 
-from rectangle import (
+from core import (
     Rectangle,
     IMAGE_WIDTH,
     IMAGE_HEIGHT,

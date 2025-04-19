@@ -1,16 +1,16 @@
-import cv2
-import numpy as np
 import pytest
+import numpy as np
+import cv2
 from pydantic import ValidationError
 
-from core_algorithm import (
+from core import (
     merge_overlapping_rectangles,
     contours_to_rectangles,
     preprocess,
     MAX_DISTANCE_BETWEEN_RECTANGLES,
     MAX_RECTANGLE_AREA_INCREMENT_RATIO,
+    Rectangle
 )
-from rectangle import Rectangle
 
 
 @pytest.fixture
