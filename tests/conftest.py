@@ -15,19 +15,3 @@ def signal_params():
         bandwidth=20000,  # 20 kHz
         mean_signal_duration_ms=20,  # 20 ms
     )
-
-
-@pytest.fixture
-def test_config():
-    """Create a test configuration dictionary."""
-    return {
-        "signal": {
-            "sample_rate": 1000000,
-            "snapshot_duration_ms": 100,
-            "snapshot_bandwidth": 200000,
-            "num_signals": 5,
-            "mean_bandwidth": 20000,
-            "bandwidth_std": 5000,
-            "mean_signal_duration_ms": 20,
-        }
-    }
