@@ -10,7 +10,7 @@ setup(
         "pydantic",
         "pyyaml",
         "opencv-python",
-        "scipy"
+        "scipy",
     ],
     python_requires=">=3.8",
-) 
+)

@@ -129,11 +129,14 @@ def test_create_random_snapshot_duration(test_config):
     assert num_segments > 0, "No signals detected in snapshot"
 
     # Check that the total duration of active segments is reasonable
-    total_active_duration = sum(
-        end - start
-        for start, end in zip(merged_starts, merged_ends)
-        if end - start >= min_segment_length
-    ) / test_config["signal"]["sample_rate"]
+    total_active_duration = (
+        sum(
+            end - start
+            for start, end in zip(merged_starts, merged_ends)
+            if end - start >= min_segment_length
+        )
+        / test_config["signal"]["sample_rate"]
+    )
 
     # Total duration should be at least mean_signal_duration_ms * num_signals / 1000
     # We use a lower threshold (0.25) to account for potential signal overlap
@@ -142,7 +145,9 @@ def test_create_random_snapshot_duration(test_config):
         * test_config["signal"]["num_signals"]
         / 1000
     )
-    assert total_active_duration >= min_expected_duration * 0.25, "Total signal duration too short"
+    assert (
+        total_active_duration >= min_expected_duration * 0.25
+    ), "Total signal duration too short"
 
     # Check that no segment exceeds the snapshot duration
     max_segment_duration = max(
@@ -150,7 +155,9 @@ def test_create_random_snapshot_duration(test_config):
         for start, end in zip(merged_starts, merged_ends)
         if end - start >= min_segment_length
     )
-    assert max_segment_duration <= test_config["signal"]["snapshot_duration_ms"] / 1000, "Signal segment exceeds snapshot duration"
+    assert (
+        max_segment_duration <= test_config["signal"]["snapshot_duration_ms"] / 1000
+    ), "Signal segment exceeds snapshot duration"
 
 
 def test_create_random_snapshot_modulation_types(test_config):
@@ -202,11 +209,9 @@ def test_create_random_snapshot_error_handling():
 
     # Test invalid bandwidth
     with pytest.raises(KeyError):
-        create_random_snapshot({
-            "sample_rate": 1e6,
-            "num_signals": 1,
-            "snapshot_duration_ms": 100
-        })
+        create_random_snapshot(
+            {"sample_rate": 1e6, "num_signals": 1, "snapshot_duration_ms": 100}
+        )
 
 
 def test_create_random_snapshot_negative_bandwidth(monkeypatch):
@@ -224,7 +229,7 @@ def test_create_random_snapshot_negative_bandwidth(monkeypatch):
         "num_signals": 1,
         "mean_bandwidth": 20000,
         "bandwidth_std": 5000,
-        "mean_signal_duration_ms": 20
+        "mean_signal_duration_ms": 20,
     }
 
     # Should not raise any errors

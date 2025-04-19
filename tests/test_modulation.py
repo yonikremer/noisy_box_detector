@@ -29,34 +29,28 @@ def test_modulation():
     return ExampleModulation
 
 
-@pytest.mark.parametrize("modulation_class", [
-    FSKModulation,
-    PSKModulation,
-    QAMModulation,
-    ASKModulation
-])
+@pytest.mark.parametrize(
+    "modulation_class", [FSKModulation, PSKModulation, QAMModulation, ASKModulation]
+)
 def test_modulation_initialization(signal_params, modulation_class):
     """Test that modulation classes initialize correctly."""
     modulation = modulation_class(signal_params)
     assert modulation.params == signal_params
 
 
-@pytest.mark.parametrize("modulation_class", [
-    FSKModulation,
-    PSKModulation,
-    QAMModulation,
-    ASKModulation
-])
+@pytest.mark.parametrize(
+    "modulation_class", [FSKModulation, PSKModulation, QAMModulation, ASKModulation]
+)
 def test_generate_signal(signal_params, modulation_class):
     """Test signal generation for each modulation type."""
     modulation = modulation_class(signal_params)
     signal = modulation.generate_signal()
-    
+
     # Check signal properties
     assert isinstance(signal, np.ndarray)
     assert signal.dtype == np.complex128
     assert len(signal) == signal_params.samples_in_snapshot
-    
+
     # Check signal power is normalized
     avg_power = np.mean(np.abs(signal) ** 2)
     assert np.isclose(avg_power, 1.0, rtol=0.1)
@@ -65,10 +59,10 @@ def test_generate_signal(signal_params, modulation_class):
 def test_fsk_frequencies(signal_params):
     """Test FSK frequency generation."""
     fsk = FSKModulation(signal_params)
-    
+
     # Check number of frequencies
     assert len(fsk.frequencies) == fsk.num_frequencies
-    
+
     # Check frequency spacing
     freq_spacing = signal_params.bandwidth / (fsk.num_frequencies - 1)
     assert np.allclose(np.diff(fsk.frequencies), freq_spacing)
@@ -77,10 +71,10 @@ def test_fsk_frequencies(signal_params):
 def test_psk_phases(signal_params):
     """Test PSK phase generation."""
     psk = PSKModulation(signal_params)
-    
+
     # Check number of phases
     assert len(psk.phase_states) == psk.num_phase_states
-    
+
     # Check phase spacing
     phase_spacing = 2 * np.pi / psk.num_phase_states
     assert np.allclose(np.diff(psk.phase_states), phase_spacing)
@@ -89,10 +83,10 @@ def test_psk_phases(signal_params):
 def test_qam_constellation(signal_params):
     """Test QAM constellation generation."""
     qam = QAMModulation(signal_params)
-    
+
     # Check constellation size
     assert len(qam.constellation) == qam.num_states
-    
+
     # Check constellation power
     avg_power = np.mean(np.abs(qam.constellation) ** 2)
     assert np.isclose(avg_power, 1.0, rtol=0.1)
@@ -101,32 +95,29 @@ def test_qam_constellation(signal_params):
 def test_ask_levels(signal_params):
     """Test ASK level generation."""
     ask = ASKModulation(signal_params)
-    
+
     # Check number of levels
     assert len(ask.amplitude_levels) == ask.num_levels
-    
+
     # Check levels are sorted
     assert np.all(np.diff(ask.amplitude_levels) >= 0)
-    
+
     # Check level normalization
     avg_power = np.mean(np.abs(ask.amplitude_levels) ** 2)
     assert np.isclose(avg_power, 1.0, rtol=0.1)
 
 
-@pytest.mark.parametrize("modulation_class", [
-    FSKModulation,
-    PSKModulation,
-    QAMModulation,
-    ASKModulation
-])
+@pytest.mark.parametrize(
+    "modulation_class", [FSKModulation, PSKModulation, QAMModulation, ASKModulation]
+)
 def test_symbol_generation(signal_params, modulation_class):
     """Test symbol generation for each modulation type."""
     modulation = modulation_class(signal_params)
     start_idx = 0
     end_idx = int(signal_params.sample_rate * 0.001)  # 1ms worth of samples
-    
+
     symbol = modulation.generate_symbol(start_idx, end_idx)
-    
+
     # Check symbol properties
     assert isinstance(symbol, (np.ndarray, np.number))
     if isinstance(symbol, np.ndarray):
@@ -136,6 +127,7 @@ def test_symbol_generation(signal_params, modulation_class):
 
 class ExampleModulation(Modulation):
     """Concrete implementation of Modulation for testing."""
+
     def generate_symbol(self, start_idx: int, end_idx: int) -> np.ndarray:
         """Generate a test symbol."""
         return np.ones(end_idx - start_idx)
@@ -149,7 +141,7 @@ def test_base_modulation_error_handling(test_modulation):
         snapshot_duration=timedelta(milliseconds=100),
         carrier_frequency=50000,
         bandwidth=20000,
-        mean_signal_duration_ms=20
+        mean_signal_duration_ms=20,
     )
 
     # Test invalid signal parameters
@@ -163,13 +155,14 @@ def test_base_modulation_error_handling(test_modulation):
             snapshot_duration=timedelta(milliseconds=100),
             carrier_frequency=50000,
             bandwidth=0,  # Invalid bandwidth
-            mean_signal_duration_ms=20
+            mean_signal_duration_ms=20,
         )
         ExampleModulation(params)
 
 
 def test_base_modulation_abstract_method():
     """Test that the base class's generate_symbol method raises NotImplementedError."""
+
     class EmptyModulation(Modulation):
         def generate_symbol(self, start_idx: int, end_idx: int) -> np.ndarray:
             raise NotImplementedError("This method should be implemented by subclasses")
@@ -179,7 +172,7 @@ def test_base_modulation_abstract_method():
         snapshot_duration=timedelta(milliseconds=100),
         carrier_frequency=50000,
         bandwidth=20000,
-        mean_signal_duration_ms=20
+        mean_signal_duration_ms=20,
     )
 
     mod = EmptyModulation(params)
@@ -196,6 +189,7 @@ def test_normalize_signal_zero_power():
 
 def test_generate_signal_invalid_timing():
     """Test that generate_signal handles invalid timing correctly."""
+
     class TestModulation(Modulation):
         def generate_symbol(self, start_idx: int, end_idx: int) -> np.ndarray:
             return np.ones(end_idx - start_idx)
@@ -205,11 +199,13 @@ def test_generate_signal_invalid_timing():
         snapshot_duration=timedelta(milliseconds=100),
         carrier_frequency=50000,
         bandwidth=20000,
-        mean_signal_duration_ms=20
+        mean_signal_duration_ms=20,
     )
 
     mod = TestModulation(params)
     # Mock generate_signal_timing to return invalid indices
     mod.params.generate_signal_timing = lambda: (10, 5)
     signal = mod.generate_signal()
-    assert np.array_equal(signal, np.zeros_like(params.time_signal, dtype=np.complex128)) 
+    assert np.array_equal(
+        signal, np.zeros_like(params.time_signal, dtype=np.complex128)
+    )

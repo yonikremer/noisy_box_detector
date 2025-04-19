@@ -53,10 +53,10 @@ class Rectangle(BaseModel):
 
     def overlap(self, other: Self):
         return not (
-                self.max_x() <= other.x
-                or other.max_x() <= self.x
-                or self.max_y() <= other.y
-                or other.max_y() <= self.y
+            self.max_x() <= other.x
+            or other.max_x() <= self.x
+            or self.max_y() <= other.y
+            or other.max_y() <= self.y
         )
 
     def merge(self, other: Self):
@@ -88,22 +88,28 @@ class Rectangle(BaseModel):
         """Generate a random rectangle within image bounds."""
         # Generate random position with enough space for minimum dimensions
         x = random.randint(0, IMAGE_WIDTH - MIN_RECTANGLE_WIDTH - 1)
-        y_high_bound = min(IMAGE_HEIGHT - MIN_RECTANGLE_HEIGHT - 1, MAX_RECTANGLE_HEIGHT - 1)
+        y_high_bound = min(
+            IMAGE_HEIGHT - MIN_RECTANGLE_HEIGHT - 1, MAX_RECTANGLE_HEIGHT - 1
+        )
         y = random.randint(0, y_high_bound)
-        
+
         # Calculate maximum dimensions that will fit within bounds
         max_width = min(IMAGE_WIDTH - x - 1, IMAGE_WIDTH - 1)
         max_height = min(IMAGE_HEIGHT - y, IMAGE_HEIGHT, MAX_RECTANGLE_HEIGHT) - 1
         if max_height < MIN_RECTANGLE_HEIGHT or max_height == 0:
-            raise ValueError(f"max_height: {max_height} is less than MIN_RECTANGLE_HEIGHT: {MIN_RECTANGLE_HEIGHT}")
-                
+            raise ValueError(
+                f"max_height: {max_height} is less than MIN_RECTANGLE_HEIGHT: {MIN_RECTANGLE_HEIGHT}"
+            )
+
         if max_width + x >= IMAGE_WIDTH:
-            raise ValueError(f"max_width: {max_width} + x: {x} >= IMAGE_WIDTH: {IMAGE_WIDTH}")
-        
+            raise ValueError(
+                f"max_width: {max_width} + x: {x} >= IMAGE_WIDTH: {IMAGE_WIDTH}"
+            )
+
         # Generate random dimensions within valid ranges
         rect_width = random.randint(MIN_RECTANGLE_WIDTH, max_width)
         rect_height = random.randint(MIN_RECTANGLE_HEIGHT, max_height)
-        
+
         rect = Rectangle(x=x, y=y, height=rect_height, length=rect_width)
         return rect
 
@@ -147,9 +153,10 @@ class Rectangle(BaseModel):
 
     @staticmethod
     def csv_header():
-        return 'x,length,middle_y,height\n'
+        return "x,length,middle_y,height\n"
 
     def to_csv_row(self):
-        return ','.join(map(str, [self.x, self.length, self.middle_y(), self.height])) + '\n'
-
-
+        return (
+            ",".join(map(str, [self.x, self.length, self.middle_y(), self.height]))
+            + "\n"
+        )

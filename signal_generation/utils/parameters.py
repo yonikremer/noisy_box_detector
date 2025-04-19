@@ -61,7 +61,7 @@ class SignalParameters:
             * self.sample_rate
             / MILLISECONDS_PER_SECOND
         )
-        
+
         # Ensure end sample doesn't exceed snapshot length
         end_sample = min(end_sample, self.samples_in_snapshot)
 

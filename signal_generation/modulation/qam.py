@@ -1,8 +1,8 @@
 """Quadrature Amplitude Modulation implementation."""
 
+import random
 import numpy as np
 from .base import Modulation
-import random
 
 
 class QAMModulation(Modulation):

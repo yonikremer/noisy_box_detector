@@ -39,12 +39,14 @@ def test_signal_parameters_computed_values(signal_params):
     assert signal_params.time_signal[-1] < 0.1  # Less than duration
 
     # Test two_pi_time_signal
-    assert np.allclose(signal_params.two_pi_time_signal, 2 * np.pi * signal_params.time_signal)
+    assert np.allclose(
+        signal_params.two_pi_time_signal, 2 * np.pi * signal_params.time_signal
+    )
 
     # Test carrier_phase
     assert np.allclose(
         signal_params.carrier_phase,
-        2 * np.pi * signal_params.time_signal * signal_params.carrier_frequency
+        2 * np.pi * signal_params.time_signal * signal_params.carrier_frequency,
     )
 
 
@@ -63,7 +65,7 @@ def test_signal_parameters_invalid_bandwidth():
 def test_generate_signal_timing(signal_params):
     """Test signal timing generation."""
     start_sample, end_sample = signal_params.generate_signal_timing()
-    
+
     # Check that samples are within bounds
     assert 0 <= start_sample < signal_params.samples_in_snapshot
     assert start_sample < end_sample <= signal_params.samples_in_snapshot
@@ -72,18 +74,19 @@ def test_generate_signal_timing(signal_params):
 def test_apply_bandpass_filter(signal_params):
     """Test bandpass filter application."""
     # Create a test signal
-    test_signal = np.random.randn(signal_params.samples_in_snapshot) + \
-                  1j * np.random.randn(signal_params.samples_in_snapshot)
-    
+    test_signal = np.random.randn(
+        signal_params.samples_in_snapshot
+    ) + 1j * np.random.randn(signal_params.samples_in_snapshot)
+
     # Apply filter
     filtered_signal = signal_params.apply_bandpass_filter(test_signal)
-    
+
     # Check output shape
     assert filtered_signal.shape == test_signal.shape
-    
+
     # Check that signal is complex
     assert np.iscomplexobj(filtered_signal)
-    
+
     # Check that filter preserves signal energy at passband frequencies
     # and attenuates stopband frequencies (could add more specific tests)
 
@@ -97,7 +100,7 @@ def test_signal_parameters_error_handling():
             snapshot_duration=timedelta(milliseconds=100),
             carrier_frequency=50000,
             bandwidth=0,  # Invalid bandwidth
-            mean_signal_duration_ms=20
+            mean_signal_duration_ms=20,
         )
 
     # Test invalid snapshot duration
@@ -107,7 +110,7 @@ def test_signal_parameters_error_handling():
             snapshot_duration=timedelta(milliseconds=100),
             carrier_frequency=50000,
             bandwidth=0,  # Invalid bandwidth
-            mean_signal_duration_ms=20
+            mean_signal_duration_ms=20,
         )
 
     # Test invalid carrier frequency
@@ -117,7 +120,7 @@ def test_signal_parameters_error_handling():
             snapshot_duration=timedelta(milliseconds=100),
             carrier_frequency=50000,
             bandwidth=0,  # Invalid bandwidth
-            mean_signal_duration_ms=20
+            mean_signal_duration_ms=20,
         )
 
     # Test invalid bandwidth
@@ -127,7 +130,7 @@ def test_signal_parameters_error_handling():
             snapshot_duration=timedelta(milliseconds=100),
             carrier_frequency=50000,
             bandwidth=0,  # Invalid bandwidth
-            mean_signal_duration_ms=20
+            mean_signal_duration_ms=20,
         )
 
 
@@ -138,15 +141,17 @@ def test_apply_bandpass_filter_error_handling():
         snapshot_duration=timedelta(milliseconds=100),
         carrier_frequency=50000,
         bandwidth=20000,
-        mean_signal_duration_ms=20
+        mean_signal_duration_ms=20,
     )
 
     # Test invalid cutoff frequency (too high)
-    with pytest.raises(ValueError, match="Cutoff frequency is greater than Nyquist frequency"):
+    with pytest.raises(
+        ValueError, match="Cutoff frequency is greater than Nyquist frequency"
+    ):
         params.bandwidth = params.sample_rate * 2  # Makes cutoff > 1
         params.apply_bandpass_filter(np.ones(100))
 
     # Test invalid cutoff frequency (zero)
     with pytest.raises(ValueError, match="Cutoff frequency must be greater than 0"):
         params.bandwidth = 0  # Makes cutoff = 0
-        params.apply_bandpass_filter(np.ones(100)) 
+        params.apply_bandpass_filter(np.ones(100))

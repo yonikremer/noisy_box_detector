@@ -28,6 +28,6 @@ def test_config():
             "num_signals": 5,
             "mean_bandwidth": 20000,
             "bandwidth_std": 5000,
-            "mean_signal_duration_ms": 20
+            "mean_signal_duration_ms": 20,
         }
-    } 
+    }

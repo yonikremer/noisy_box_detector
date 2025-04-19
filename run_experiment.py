@@ -79,7 +79,7 @@ def main():
     experiment = start(
         api_key="yNLPmFeYvfF9HArNCZ2xm8RHn",
         project_name="generic-rectangle-detector",
-        workspace="yonikremer"
+        workspace="yonikremer",
     )
     log_code_files(experiment)
     ground_truth_rectangles, image = generate_data()
@@ -105,7 +105,6 @@ def main():
     log_metrics(experiment, ground_truth_rectangles, predicted_rectangles)
 
 
-
 def log_metrics(experiment, ground_truth_rectangles, predicted_rectangles):
     total_ground_truth_area = 0
     total_predicted_area = 0
@@ -116,11 +115,19 @@ def log_metrics(experiment, ground_truth_rectangles, predicted_rectangles):
         total_ground_truth_area += ground_truth_rectangle.area()
     total_intersection_area = 0
     total_union_area = 0
-    for ground_truth_rectangle, computed_rectangle in itertools.product(ground_truth_rectangles, predicted_rectangles):
+    for ground_truth_rectangle, computed_rectangle in itertools.product(
+        ground_truth_rectangles, predicted_rectangles
+    ):
         if ground_truth_rectangle.overlap(computed_rectangle):
-            current_intersection_area = ground_truth_rectangle.intersetion_area(computed_rectangle)
+            current_intersection_area = ground_truth_rectangle.intersetion_area(
+                computed_rectangle
+            )
             total_intersection_area += current_intersection_area
-            total_union_area += ground_truth_rectangle.area() + computed_rectangle.area() - current_intersection_area
+            total_union_area += (
+                ground_truth_rectangle.area()
+                + computed_rectangle.area()
+                - current_intersection_area
+            )
 
     intersection_over_union = total_intersection_area / total_union_area
     intersection_over_ground_truth = total_intersection_area / total_ground_truth_area
@@ -144,23 +151,29 @@ def log_metrics(experiment, ground_truth_rectangles, predicted_rectangles):
 
 
 def log_code_files(experiment):
-    ignored_directories = ['.git', '.venv', 'venv', '__pycache__', '.idea']
-    for root, dirs, files in os.walk('.'):
+    ignored_directories = [".git", ".venv", "venv", "__pycache__", ".idea"]
+    for root, dirs, files in os.walk("."):
         if any(ignored_directory in root for ignored_directory in ignored_directories):
             continue
         for subdir in dirs:
             dirpath = os.path.join(root, subdir)
-            if any(ignored_directory in dirpath for ignored_directory in ignored_directories):
+            if any(
+                ignored_directory in dirpath
+                for ignored_directory in ignored_directories
+            ):
                 continue
             experiment.log_code(dirpath)
 
         for file in files:
             filepath = os.path.join(root, file)
-            if any(ignored_directory in filepath for ignored_directory in ignored_directories):
+            if any(
+                ignored_directory in filepath
+                for ignored_directory in ignored_directories
+            ):
                 continue
-            if filepath.endswith('.py'):
+            if filepath.endswith(".py"):
                 experiment.log_code(filepath)
-            if filepath.endswith('.yaml'):
+            if filepath.endswith(".yaml"):
                 with open(filepath) as f:
                     parameters = yaml.load(f, Loader=yaml.FullLoader)
                 experiment.log_parameters(parameters)
