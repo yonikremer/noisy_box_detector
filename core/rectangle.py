@@ -95,33 +95,35 @@ class Rectangle(BaseModel):
 
     @classmethod
     def random(cls):
-        """
-        Generate a random valid rectangle.
-        The rectangle will satisfy all constraints:
-        - Within image bounds
-        - Minimum and maximum height/width
-        - Minimum area
-        """
-        # Calculate minimum side length to satisfy area requirement
-        min_side = int(np.ceil(np.sqrt(MIN_RECTANGLE_AREA)))
+        """Generate a random rectangle within image bounds."""
+        # Generate random position with enough space for minimum dimensions
+        x = random.randint(0, IMAGE_WIDTH - MIN_RECTANGLE_WIDTH)
+        y = random.randint(0, IMAGE_HEIGHT - MIN_RECTANGLE_HEIGHT)
         
-        # Adjust minimum dimensions to satisfy area requirement
-        min_width = max(MIN_RECTANGLE_WIDTH, min_side)
-        min_height = max(MIN_RECTANGLE_HEIGHT, min_side)
-        
-        # Generate random position
-        x = random.randint(0, IMAGE_WIDTH - min_width)
-        y = random.randint(0, IMAGE_HEIGHT - min_height)
-        
-        # Calculate maximum dimensions
-        max_width = IMAGE_WIDTH - x
+        # Calculate maximum dimensions that will fit within bounds
+        max_width = min(IMAGE_WIDTH - x, IMAGE_WIDTH)
         max_height = min(IMAGE_HEIGHT - y, MAX_RECTANGLE_HEIGHT)
         
-        # Generate random dimensions that satisfy area requirement
-        rect_width = random.randint(min_width, max_width - 1)
-        rect_height = random.randint(min_height, max_height - 1)
+        # Generate random dimensions within valid ranges
+        rect_width = random.randint(MIN_RECTANGLE_WIDTH, max_width)
+        rect_height = random.randint(MIN_RECTANGLE_HEIGHT, max_height)
         
-        return Rectangle(x=x, y=y, height=rect_height, length=rect_width)
+        # Create and validate rectangle
+        rect = Rectangle(x=x, y=y, height=rect_height, length=rect_width)
+        
+        # Ensure minimum area requirement is met
+        while rect.area() < MIN_RECTANGLE_AREA:
+            # Try increasing either width or height while staying within bounds
+            if rect_width < max_width:
+                rect_width = min(rect_width + 1, max_width)
+            elif rect_height < max_height:
+                rect_height = min(rect_height + 1, max_height)
+            else:
+                # If we can't increase either dimension, start over
+                return cls.random()
+            rect = Rectangle(x=x, y=y, height=rect_height, length=rect_width)
+        
+        return rect
 
     def distance(self, other: Self) -> int:
         """
