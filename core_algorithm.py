@@ -120,6 +120,11 @@ def preprocess(image):
     blurred = cv2.GaussianBlur(image, (BLURRING_KERNEL_SIZE, BLURRING_KERNEL_SIZE), 0)
     # Convert to uint8 before thresholding
     max_value, min_value = blurred.max(), blurred.min()
+    
+    # If the image is uniform (all black or all white), return it as is
+    if max_value == min_value:
+        return image
+        
     blurred_normalised = np.uint8(
         MAX_UINT8 * ((blurred - min_value) / (max_value - min_value))
     )
