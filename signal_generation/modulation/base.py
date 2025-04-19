@@ -46,7 +46,6 @@ class Modulation(ABC):
         Returns:
             Complex signal for the symbol
         """
-        raise NotImplementedError("Subclasses must implement generate_symbol")
 
     @staticmethod
     def apply_fade_window(
@@ -99,8 +98,6 @@ class Modulation(ABC):
 
         for start_idx in range(start_sample, end_sample, samples_per_symbol):
             end_idx = min(start_idx + samples_per_symbol, end_sample)
-            if end_idx <= start_idx:
-                continue
 
             symbol = self.generate_symbol(start_idx, end_idx)
             signal[start_idx:end_idx] = symbol
