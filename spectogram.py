@@ -1,15 +1,10 @@
 """
 This script generates a snapshot of a spectrum with randomly generated FSK signals and plots its spectrogram.
 """
-from datetime import timedelta
-import random
 
 import matplotlib.pyplot as plt
 from scipy.signal import ShortTimeFFT, get_window
 import numpy as np
-
-from random_snapshot_generation import create_random_snapshot
-
 
 def create_spectrogram(snapshot: np.ndarray, sample_rate: int):
     if not np.iscomplexobj(snapshot):
@@ -46,16 +41,3 @@ def plot_spectrogram(frequencies, spectrogram, times) -> None:
     plt.tight_layout()
     plt.show()
 
-
-def main():
-    random.seed(0)
-    sample_rate: int = 1_000_000  # Sampling rate in Hz
-    snapshot_bandwidth: int = sample_rate
-    snapshot_duration = timedelta(seconds=2)  # Total snapshot duration
-    num_signals: int = 10
-    snapshot = create_random_snapshot(snapshot_bandwidth, sample_rate, snapshot_duration, num_signals)
-    create_spectrogram(snapshot=snapshot, sample_rate=sample_rate)
-
-
-if __name__ == "__main__":
-    main()
