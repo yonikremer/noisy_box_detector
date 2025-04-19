@@ -10,17 +10,7 @@ from signal_generation.modulation.qam import QAMModulation
 from signal_generation.modulation.ask import ASKModulation
 from signal_generation.modulation.base import Modulation
 
-
-@pytest.fixture
-def signal_params():
-    """Create a basic SignalParameters instance for testing."""
-    return SignalParameters(
-        sample_rate=1000000,  # 1 MHz
-        snapshot_duration=timedelta(milliseconds=100),  # 100 ms
-        carrier_frequency=50000,  # 50 kHz
-        bandwidth=20000,  # 20 kHz
-        mean_signal_duration_ms=20,  # 20 ms
-    )
+from conftest import signal_params
 
 
 @pytest.fixture
@@ -216,10 +206,10 @@ def test_apply_fade_window():
     # Create test signal
     signal = np.ones(1000, dtype=np.complex128)
     sample_rate = 1000
-    
+
     # Apply fade window
     Modulation.apply_fade_window(signal, 0, 1000, sample_rate)
-    
+
     # Check that edges are faded
     assert np.all(signal[0:10] < 1.0)  # Fade-in
     assert np.all(signal[-10:] < 1.0)  # Fade-out
@@ -229,15 +219,15 @@ def test_apply_fade_window():
 def test_normalize_signal():
     """Test that normalize_signal correctly normalizes signal power."""
     # Create test signal with known power
-    signal = np.array([1+1j, 2+2j, 3+3j], dtype=np.complex128)
-    
+    signal = np.array([1 + 1j, 2 + 2j, 3 + 3j], dtype=np.complex128)
+
     # Normalize signal
     normalized = Modulation.normalize_signal(signal)
-    
+
     # Check power is approximately 1
     power = np.mean(np.abs(normalized) ** 2)
     assert np.isclose(power, 1.0, rtol=1e-5)
-    
+
     # Test with zero signal
     zero_signal = np.zeros(10, dtype=np.complex128)
     normalized_zero = Modulation.normalize_signal(zero_signal)
