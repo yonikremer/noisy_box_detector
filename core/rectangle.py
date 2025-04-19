@@ -96,15 +96,6 @@ class Rectangle(BaseModel):
         # Calculate maximum dimensions that will fit within bounds
         max_width = min(IMAGE_WIDTH - x - 1, IMAGE_WIDTH - 1)
         max_height = min(IMAGE_HEIGHT - y, IMAGE_HEIGHT, MAX_RECTANGLE_HEIGHT) - 1
-        if max_height < MIN_RECTANGLE_HEIGHT or max_height == 0:
-            raise ValueError(
-                f"max_height: {max_height} is less than MIN_RECTANGLE_HEIGHT: {MIN_RECTANGLE_HEIGHT}"
-            )
-
-        if max_width + x >= IMAGE_WIDTH:
-            raise ValueError(
-                f"max_width: {max_width} + x: {x} >= IMAGE_WIDTH: {IMAGE_WIDTH}"
-            )
 
         # Generate random dimensions within valid ranges
         rect_width = random.randint(MIN_RECTANGLE_WIDTH, max_width)
