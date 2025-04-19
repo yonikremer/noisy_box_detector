@@ -26,7 +26,7 @@ def signal_params():
 @pytest.fixture
 def test_modulation():
     """Create a test modulation instance."""
-    return TestModulation
+    return ExampleModulation
 
 
 @pytest.mark.parametrize("modulation_class", [
@@ -134,7 +134,7 @@ def test_symbol_generation(signal_params, modulation_class):
     assert np.iscomplexobj(symbol) or isinstance(symbol, (float, int))
 
 
-class TestModulation(Modulation):
+class ExampleModulation(Modulation):
     """Concrete implementation of Modulation for testing."""
     def generate_symbol(self, start_idx: int, end_idx: int) -> np.ndarray:
         """Generate a test symbol."""
@@ -165,7 +165,7 @@ def test_base_modulation_error_handling(test_modulation):
             bandwidth=0,  # Invalid bandwidth
             mean_signal_duration_ms=20
         )
-        TestModulation(params)
+        ExampleModulation(params)
 
 
 def test_base_modulation_abstract_method():
