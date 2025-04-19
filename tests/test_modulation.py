@@ -209,3 +209,36 @@ def test_generate_signal_invalid_timing():
     assert np.array_equal(
         signal, np.zeros_like(params.time_signal, dtype=np.complex128)
     )
+
+
+def test_apply_fade_window():
+    """Test that apply_fade_window correctly applies fade-in and fade-out windows."""
+    # Create test signal
+    signal = np.ones(1000, dtype=np.complex128)
+    sample_rate = 1000
+    
+    # Apply fade window
+    Modulation.apply_fade_window(signal, 0, 1000, sample_rate)
+    
+    # Check that edges are faded
+    assert np.all(signal[0:10] < 1.0)  # Fade-in
+    assert np.all(signal[-10:] < 1.0)  # Fade-out
+    assert np.all(signal[10:-10] == 1.0)  # Middle unchanged
+
+
+def test_normalize_signal():
+    """Test that normalize_signal correctly normalizes signal power."""
+    # Create test signal with known power
+    signal = np.array([1+1j, 2+2j, 3+3j], dtype=np.complex128)
+    
+    # Normalize signal
+    normalized = Modulation.normalize_signal(signal)
+    
+    # Check power is approximately 1
+    power = np.mean(np.abs(normalized) ** 2)
+    assert np.isclose(power, 1.0, rtol=1e-5)
+    
+    # Test with zero signal
+    zero_signal = np.zeros(10, dtype=np.complex128)
+    normalized_zero = Modulation.normalize_signal(zero_signal)
+    assert np.array_equal(normalized_zero, zero_signal)
