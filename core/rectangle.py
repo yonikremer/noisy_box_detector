@@ -97,16 +97,34 @@ class Rectangle(BaseModel):
     def random(cls):
         """Generate a random rectangle within image bounds."""
         # Generate random position with enough space for minimum dimensions
-        x = random.randint(0, IMAGE_WIDTH - MIN_RECTANGLE_WIDTH)
-        y = random.randint(0, IMAGE_HEIGHT - MIN_RECTANGLE_HEIGHT)
+        x = random.randint(0, IMAGE_WIDTH - MIN_RECTANGLE_WIDTH - 1)
+        y = random.randint(0, IMAGE_HEIGHT - MIN_RECTANGLE_HEIGHT - 1)
         
         # Calculate maximum dimensions that will fit within bounds
         max_width = min(IMAGE_WIDTH - x, IMAGE_WIDTH)
-        max_height = min(IMAGE_HEIGHT - y, IMAGE_HEIGHT, MAX_RECTANGLE_HEIGHT)
+        max_height = min(IMAGE_HEIGHT - y, IMAGE_HEIGHT - y, MAX_RECTANGLE_HEIGHT)
+        
+        while max_width * max_height < MIN_RECTANGLE_AREA:
+            if max_width > MIN_RECTANGLE_WIDTH:
+                max_width -= 1
+            elif max_height > MIN_RECTANGLE_HEIGHT:
+                max_height -= 1
+            else:
+                print(f"Cannot fit minimum dimensions within bounds: {max_width} * {max_height} < {MIN_RECTANGLE_AREA}")
+                return cls.random()
         
         # Generate random dimensions within valid ranges
-        rect_width = random.randint(MIN_RECTANGLE_WIDTH, max_width)
-        rect_height = random.randint(MIN_RECTANGLE_HEIGHT, max_height)
+        rect_width = random.randint(MIN_RECTANGLE_WIDTH, max_width - 1)
+        rect_height = random.randint(MIN_RECTANGLE_HEIGHT, max_height - 1)
+        
+        while rect_width * rect_height <= MIN_RECTANGLE_AREA:
+            if rect_width < max_width:
+                rect_width += 1
+            elif rect_height < max_height:
+                rect_height += 1
+            else:
+                print(f"Cannot fit minimum dimensions within bounds: {rect_width} * {rect_height} < {MIN_RECTANGLE_AREA}")
+                return cls.random()
 
         rect = Rectangle(x=x, y=y, height=rect_height, length=rect_width)
         return rect
