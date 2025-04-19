@@ -8,6 +8,7 @@ from signal_generation.modulation.fsk import FSKModulation
 from signal_generation.modulation.psk import PSKModulation
 from signal_generation.modulation.qam import QAMModulation
 from signal_generation.modulation.ask import ASKModulation
+from signal_generation.modulation.base import Modulation
 
 
 @pytest.fixture
@@ -20,6 +21,12 @@ def signal_params():
         bandwidth=20000,  # 20 kHz
         mean_signal_duration_ms=20,  # 20 ms
     )
+
+
+@pytest.fixture
+def test_modulation():
+    """Create a test modulation instance."""
+    return TestModulation
 
 
 @pytest.mark.parametrize("modulation_class", [
@@ -124,4 +131,85 @@ def test_symbol_generation(signal_params, modulation_class):
     assert isinstance(symbol, (np.ndarray, np.number))
     if isinstance(symbol, np.ndarray):
         assert len(symbol) == 1 or len(symbol) == end_idx - start_idx
-    assert np.iscomplexobj(symbol) or isinstance(symbol, (float, int)) 
+    assert np.iscomplexobj(symbol) or isinstance(symbol, (float, int))
+
+
+class TestModulation(Modulation):
+    """Concrete implementation of Modulation for testing."""
+    def generate_symbol(self, start_idx: int, end_idx: int) -> np.ndarray:
+        """Generate a test symbol."""
+        return np.ones(end_idx - start_idx)
+
+
+def test_base_modulation_error_handling(test_modulation):
+    """Test error handling in base modulation class."""
+    # Create a valid SignalParameters instance
+    params = SignalParameters(
+        sample_rate=1e6,
+        snapshot_duration=timedelta(milliseconds=100),
+        carrier_frequency=50000,
+        bandwidth=20000,
+        mean_signal_duration_ms=20
+    )
+
+    # Test invalid signal parameters
+    with pytest.raises(ValueError, match="Signal parameters must be provided"):
+        test_modulation(None)
+
+    # Test invalid bandwidth in parameters
+    with pytest.raises(ValueError, match="Bandwidth must be greater than 0"):
+        params = SignalParameters(
+            sample_rate=1e6,
+            snapshot_duration=timedelta(milliseconds=100),
+            carrier_frequency=50000,
+            bandwidth=0,  # Invalid bandwidth
+            mean_signal_duration_ms=20
+        )
+        TestModulation(params)
+
+
+def test_base_modulation_abstract_method():
+    """Test that the base class's generate_symbol method raises NotImplementedError."""
+    class EmptyModulation(Modulation):
+        def generate_symbol(self, start_idx: int, end_idx: int) -> np.ndarray:
+            raise NotImplementedError("This method should be implemented by subclasses")
+
+    params = SignalParameters(
+        sample_rate=1e6,
+        snapshot_duration=timedelta(milliseconds=100),
+        carrier_frequency=50000,
+        bandwidth=20000,
+        mean_signal_duration_ms=20
+    )
+
+    mod = EmptyModulation(params)
+    with pytest.raises(NotImplementedError):
+        mod.generate_symbol(0, 10)
+
+
+def test_normalize_signal_zero_power():
+    """Test that normalize_signal handles zero power signals correctly."""
+    signal = np.zeros(100, dtype=np.complex128)
+    normalized = Modulation.normalize_signal(signal)
+    assert np.array_equal(normalized, signal)
+
+
+def test_generate_signal_invalid_timing():
+    """Test that generate_signal handles invalid timing correctly."""
+    class TestModulation(Modulation):
+        def generate_symbol(self, start_idx: int, end_idx: int) -> np.ndarray:
+            return np.ones(end_idx - start_idx)
+
+    params = SignalParameters(
+        sample_rate=1e6,
+        snapshot_duration=timedelta(milliseconds=100),
+        carrier_frequency=50000,
+        bandwidth=20000,
+        mean_signal_duration_ms=20
+    )
+
+    mod = TestModulation(params)
+    # Mock generate_signal_timing to return invalid indices
+    mod.params.generate_signal_timing = lambda: (10, 5)
+    signal = mod.generate_signal()
+    assert np.array_equal(signal, np.zeros_like(params.time_signal, dtype=np.complex128)) 

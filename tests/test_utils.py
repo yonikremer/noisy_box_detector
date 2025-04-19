@@ -18,7 +18,6 @@ def test_plot_signal():
     plot_signal(signal, sample_rate, "Test Signal")
     plt.close('all')  # Clean up
 
-
 def test_load_config():
     """Test configuration loading."""
     config = load_config()

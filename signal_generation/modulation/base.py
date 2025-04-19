@@ -16,7 +16,12 @@ class Modulation(ABC):
 
         Args:
             params: Signal generation parameters
+
+        Raises:
+            ValueError: If params is None
         """
+        if params is None:
+            raise ValueError("Signal parameters must be provided")
         self.params = params
 
     @staticmethod
@@ -101,7 +106,6 @@ class Modulation(ABC):
             signal[start_idx:end_idx] = symbol
             self.apply_fade_window(signal, start_idx, end_idx, self.params.sample_rate)
 
-        signal = self.normalize_signal(signal)
         # Apply bandpass filter to baseband signal
         filtered_signal = self.params.apply_bandpass_filter(signal)
         # Modulate with carrier frequency

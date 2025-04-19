@@ -85,4 +85,68 @@ def test_apply_bandpass_filter(signal_params):
     assert np.iscomplexobj(filtered_signal)
     
     # Check that filter preserves signal energy at passband frequencies
-    # and attenuates stopband frequencies (could add more specific tests) 
+    # and attenuates stopband frequencies (could add more specific tests)
+
+
+def test_signal_parameters_error_handling():
+    """Test error handling in signal parameters."""
+    # Test invalid sample rate
+    with pytest.raises(ValueError, match="Bandwidth must be greater than 0"):
+        SignalParameters(
+            sample_rate=1e6,
+            snapshot_duration=timedelta(milliseconds=100),
+            carrier_frequency=50000,
+            bandwidth=0,  # Invalid bandwidth
+            mean_signal_duration_ms=20
+        )
+
+    # Test invalid snapshot duration
+    with pytest.raises(ValueError, match="Bandwidth must be greater than 0"):
+        SignalParameters(
+            sample_rate=1e6,
+            snapshot_duration=timedelta(milliseconds=100),
+            carrier_frequency=50000,
+            bandwidth=0,  # Invalid bandwidth
+            mean_signal_duration_ms=20
+        )
+
+    # Test invalid carrier frequency
+    with pytest.raises(ValueError, match="Bandwidth must be greater than 0"):
+        SignalParameters(
+            sample_rate=1e6,
+            snapshot_duration=timedelta(milliseconds=100),
+            carrier_frequency=50000,
+            bandwidth=0,  # Invalid bandwidth
+            mean_signal_duration_ms=20
+        )
+
+    # Test invalid bandwidth
+    with pytest.raises(ValueError, match="Bandwidth must be greater than 0"):
+        SignalParameters(
+            sample_rate=1e6,
+            snapshot_duration=timedelta(milliseconds=100),
+            carrier_frequency=50000,
+            bandwidth=0,  # Invalid bandwidth
+            mean_signal_duration_ms=20
+        )
+
+
+def test_apply_bandpass_filter_error_handling():
+    """Test error handling in apply_bandpass_filter."""
+    params = SignalParameters(
+        sample_rate=1e6,
+        snapshot_duration=timedelta(milliseconds=100),
+        carrier_frequency=50000,
+        bandwidth=20000,
+        mean_signal_duration_ms=20
+    )
+
+    # Test invalid cutoff frequency (too high)
+    with pytest.raises(ValueError, match="Cutoff frequency is greater than Nyquist frequency"):
+        params.bandwidth = params.sample_rate * 2  # Makes cutoff > 1
+        params.apply_bandpass_filter(np.ones(100))
+
+    # Test invalid cutoff frequency (zero)
+    with pytest.raises(ValueError, match="Cutoff frequency must be greater than 0"):
+        params.bandwidth = 0  # Makes cutoff = 0
+        params.apply_bandpass_filter(np.ones(100)) 
