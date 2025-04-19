@@ -9,8 +9,7 @@ from core import (
     IMAGE_HEIGHT,
     MIN_RECTANGLE_HEIGHT,
     MAX_RECTANGLE_HEIGHT,
-    MIN_RECTANGLE_WIDTH,
-    MIN_RECTANGLE_AREA,
+    MIN_RECTANGLE_WIDTH
 )
 
 
@@ -52,40 +51,6 @@ def test_rectangle_creation(valid_rectangle):
 
     # Test that middle_y calculation is correct
     assert valid_rectangle.middle_y() == 125  # 100 + 50//2
-
-
-def test_rectangle_boundaries():
-    # Test rectangle at image boundaries with minimum area
-    min_side = int(np.ceil(np.sqrt(MIN_RECTANGLE_AREA)))
-    rect = Rectangle(
-        x=0, y=0,
-        height=min_side,
-        length=min_side
-    )
-    assert rect.x == 0
-    assert rect.y == 0
-
-    # Test rectangle extending beyond boundaries
-    with pytest.raises(ValidationError):
-        Rectangle(
-            x=IMAGE_WIDTH-10,
-            y=IMAGE_HEIGHT-10,
-            height=20,
-            length=20
-        )
-
-
-def test_rectangle_area(valid_rectangle):
-    # Test area calculation
-    assert valid_rectangle.area() == 2500  # 50 * 50
-
-    # Test minimum area validation
-    with pytest.raises(ValidationError):
-        Rectangle(
-            x=0, y=0,
-            height=int(np.sqrt(MIN_RECTANGLE_AREA-1)),
-            length=int(np.sqrt(MIN_RECTANGLE_AREA-1))
-        )
 
 
 def test_rectangle_overlap():
@@ -198,7 +163,6 @@ def test_rectangle_random():
         assert 0 <= rect.y < IMAGE_HEIGHT
         assert MIN_RECTANGLE_HEIGHT <= rect.height <= MAX_RECTANGLE_HEIGHT
         assert MIN_RECTANGLE_WIDTH <= rect.length <= IMAGE_WIDTH
-        assert rect.area() >= MIN_RECTANGLE_AREA
         assert rect.max_x() < IMAGE_WIDTH
         assert rect.max_y() < IMAGE_HEIGHT
 

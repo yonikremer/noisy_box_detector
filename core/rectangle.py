@@ -1,6 +1,5 @@
 import random
 from typing import Self
-from pydantic_core import ValidationError
 import yaml
 from matplotlib import pyplot as plt
 from pydantic import BaseModel, Field, model_validator
@@ -13,7 +12,6 @@ with open("data_configs.yaml") as f:
     MIN_RECTANGLE_HEIGHT = configs["min_rectangle_height"]
     MAX_RECTANGLE_HEIGHT = configs["max_rectangle_height"]
     MIN_RECTANGLE_WIDTH = configs["min_rectangle_width"]
-    MIN_RECTANGLE_AREA = configs["min_rectangle_area"]
 
 
 class Rectangle(BaseModel):
@@ -45,14 +43,6 @@ class Rectangle(BaseModel):
 
     def area(self):
         return self.height * self.length
-
-    @model_validator(mode="after")
-    def validate_area(self):
-        if self.area() < MIN_RECTANGLE_AREA:
-            raise ValueError(
-                "Area of rectangle must be greater than MIN_RECTANGLE_AREA"
-            )
-        return self
 
     @property
     def slice(self):
@@ -98,34 +88,22 @@ class Rectangle(BaseModel):
         """Generate a random rectangle within image bounds."""
         # Generate random position with enough space for minimum dimensions
         x = random.randint(0, IMAGE_WIDTH - MIN_RECTANGLE_WIDTH - 1)
-        y = random.randint(0, IMAGE_HEIGHT - MIN_RECTANGLE_HEIGHT - 1)
+        y_high_bound = min(IMAGE_HEIGHT - MIN_RECTANGLE_HEIGHT - 1, MAX_RECTANGLE_HEIGHT - 1)
+        y = random.randint(0, y_high_bound)
         
         # Calculate maximum dimensions that will fit within bounds
-        max_width = min(IMAGE_WIDTH - x, IMAGE_WIDTH)
-        max_height = min(IMAGE_HEIGHT - y, IMAGE_HEIGHT - y, MAX_RECTANGLE_HEIGHT)
-        
-        while max_width * max_height < MIN_RECTANGLE_AREA:
-            if max_width > MIN_RECTANGLE_WIDTH + 1:
-                max_width -= 1
-            elif max_height > MIN_RECTANGLE_HEIGHT + 1:
-                max_height -= 1
-            else:
-                print(f"Cannot fit minimum dimensions within bounds: {max_width} * {max_height} < {MIN_RECTANGLE_AREA}")
-                return cls.random()
+        max_width = min(IMAGE_WIDTH - x - 1, IMAGE_WIDTH - 1)
+        max_height = min(IMAGE_HEIGHT - y, IMAGE_HEIGHT, MAX_RECTANGLE_HEIGHT) - 1
+        if max_height < MIN_RECTANGLE_HEIGHT or max_height == 0:
+            raise ValueError(f"max_height: {max_height} is less than MIN_RECTANGLE_HEIGHT: {MIN_RECTANGLE_HEIGHT}")
+                
+        if max_width + x >= IMAGE_WIDTH:
+            raise ValueError(f"max_width: {max_width} + x: {x} >= IMAGE_WIDTH: {IMAGE_WIDTH}")
         
         # Generate random dimensions within valid ranges
-        rect_width = random.randint(MIN_RECTANGLE_WIDTH, max_width - 1)
-        rect_height = random.randint(MIN_RECTANGLE_HEIGHT, max_height - 1)
+        rect_width = random.randint(MIN_RECTANGLE_WIDTH, max_width)
+        rect_height = random.randint(MIN_RECTANGLE_HEIGHT, max_height)
         
-        while rect_width * rect_height <= MIN_RECTANGLE_AREA:
-            if rect_width < max_width - 1:
-                rect_width += 1
-            elif rect_height < max_height - 1:
-                rect_height += 1
-            else:
-                print(f"Cannot fit minimum dimensions within bounds: {rect_width} * {rect_height} < {MIN_RECTANGLE_AREA}")
-                return cls.random()
-
         rect = Rectangle(x=x, y=y, height=rect_height, length=rect_width)
         return rect
 
