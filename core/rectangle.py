@@ -105,9 +105,9 @@ class Rectangle(BaseModel):
         max_height = min(IMAGE_HEIGHT - y, IMAGE_HEIGHT - y, MAX_RECTANGLE_HEIGHT)
         
         while max_width * max_height < MIN_RECTANGLE_AREA:
-            if max_width > MIN_RECTANGLE_WIDTH:
+            if max_width > MIN_RECTANGLE_WIDTH + 1:
                 max_width -= 1
-            elif max_height > MIN_RECTANGLE_HEIGHT:
+            elif max_height > MIN_RECTANGLE_HEIGHT + 1:
                 max_height -= 1
             else:
                 print(f"Cannot fit minimum dimensions within bounds: {max_width} * {max_height} < {MIN_RECTANGLE_AREA}")
@@ -118,9 +118,9 @@ class Rectangle(BaseModel):
         rect_height = random.randint(MIN_RECTANGLE_HEIGHT, max_height - 1)
         
         while rect_width * rect_height <= MIN_RECTANGLE_AREA:
-            if rect_width < max_width:
+            if rect_width < max_width - 1:
                 rect_width += 1
-            elif rect_height < max_height:
+            elif rect_height < max_height - 1:
                 rect_height += 1
             else:
                 print(f"Cannot fit minimum dimensions within bounds: {rect_width} * {rect_height} < {MIN_RECTANGLE_AREA}")
