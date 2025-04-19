@@ -71,6 +71,38 @@ def test_merge_overlapping_rectangles_edge_cases():
     assert len(merged) == 2  # Should not merge if area ratio would be exceeded
 
 
+def test_merge_overlapping_rectangles_complex_cases():
+    # Test chain merging (A->B->C)
+    chain_rectangles = [
+        Rectangle(x=0, y=0, length=20, height=20),
+        Rectangle(x=15, y=0, length=20, height=20),
+        Rectangle(x=30, y=0, length=20, height=20),
+    ]
+    merged = merge_overlapping_rectangles(chain_rectangles)
+    assert len(merged) == 1  # All three should merge into one
+
+    # Test circular arrangement
+    circle_rectangles = [
+        Rectangle(x=0, y=0, length=20, height=20),
+        Rectangle(x=15, y=15, length=20, height=20),
+        Rectangle(x=0, y=15, length=20, height=20),
+    ]
+    merged = merge_overlapping_rectangles(circle_rectangles)
+    assert len(merged) == 1  # All should merge into one
+
+    # Test with multiple groups
+    groups_rectangles = [
+        # Group 1
+        Rectangle(x=0, y=0, length=20, height=20),
+        Rectangle(x=15, y=0, length=20, height=20),
+        # Group 2
+        Rectangle(x=100, y=100, length=20, height=20),
+        Rectangle(x=115, y=100, length=20, height=20),
+    ]
+    merged = merge_overlapping_rectangles(groups_rectangles)
+    assert len(merged) == 2  # Should merge into two groups
+
+
 def test_contours_to_rectangles(sample_image):
     # Find contours in the sample image
     contours, hierarchy = cv2.findContours(
@@ -87,6 +119,27 @@ def test_contours_to_rectangles(sample_image):
     empty_contours = []
     empty_hierarchy = np.array([[]])
     assert contours_to_rectangles(empty_contours, empty_hierarchy) == []
+
+
+def test_contours_to_rectangles_edge_cases():
+    # Create an image with a single pixel
+    single_pixel = np.zeros((100, 100), dtype=np.uint8)
+    single_pixel[50, 50] = 255
+    contours, hierarchy = cv2.findContours(
+        single_pixel, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+    )
+    rectangles = contours_to_rectangles(contours, hierarchy)
+    assert len(rectangles) == 0  # Should be filtered out due to minimum area
+
+    # Create an image with nested contours
+    nested = np.zeros((100, 100), dtype=np.uint8)
+    cv2.rectangle(nested, (10, 10), (90, 90), 255, -1)  # Outer rectangle
+    cv2.rectangle(nested, (30, 30), (70, 70), 0, -1)   # Inner hole
+    contours, hierarchy = cv2.findContours(
+        nested, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+    )
+    rectangles = contours_to_rectangles(contours, hierarchy)
+    assert len(rectangles) == 1  # Should only detect the outer rectangle
 
 
 def test_preprocess(sample_image):
@@ -113,4 +166,29 @@ def test_preprocess(sample_image):
     # Test with all white image - after preprocessing, values might not be exactly 255
     white_image = np.full((100, 100), 255, dtype=np.uint8)
     processed_white = preprocess(white_image)
-    assert np.mean(processed_white) > 128  # Check that the image remains mostly white 
+    assert np.mean(processed_white) > 128  # Check that the image remains mostly white
+
+
+def test_preprocess_edge_cases():
+    # Test with single pixel image
+    single_pixel = np.zeros((1, 1), dtype=np.uint8)
+    single_pixel[0, 0] = 255
+    processed = preprocess(single_pixel)
+    assert processed.shape == (1, 1)  # Shape should be preserved
+    
+    # Test with very small image
+    small_image = np.zeros((3, 3), dtype=np.uint8)
+    small_image[1, 1] = 255
+    processed = preprocess(small_image)
+    assert processed.shape == (3, 3)  # Shape should be preserved
+    
+    # Test with image containing only intermediate values
+    gray_image = np.full((100, 100), 128, dtype=np.uint8)
+    processed = preprocess(gray_image)
+    assert processed.dtype == np.uint8
+    
+    # Test with alternating pattern
+    checker = np.zeros((100, 100), dtype=np.uint8)
+    checker[::2, ::2] = 255  # Create checkerboard pattern
+    processed = preprocess(checker)
+    assert processed.dtype == np.uint8 
