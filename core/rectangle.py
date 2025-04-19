@@ -101,8 +101,12 @@ class Rectangle(BaseModel):
         y = random.randint(0, IMAGE_HEIGHT - MIN_RECTANGLE_HEIGHT)
         
         # Calculate maximum dimensions that will fit within bounds
-        max_width = min(IMAGE_WIDTH - x, IMAGE_WIDTH)
-        max_height = min(IMAGE_HEIGHT - y, MAX_RECTANGLE_HEIGHT)
+        max_width = IMAGE_WIDTH - x
+        max_height = min(IMAGE_HEIGHT - y, MAX_RECTANGLE_HEIGHT)  # Take both constraints into account
+        
+        # Ensure we have valid ranges
+        if max_height < MIN_RECTANGLE_HEIGHT or max_width < MIN_RECTANGLE_WIDTH:
+            return cls.random()  # Try again if we can't fit minimum dimensions
         
         # Generate random dimensions within valid ranges
         rect_width = random.randint(MIN_RECTANGLE_WIDTH, max_width)
