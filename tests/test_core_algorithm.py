@@ -193,6 +193,29 @@ def test_preprocess_edge_cases():
     assert processed.dtype == np.uint8
 
 
+def test_preprocess_error_handling():
+    """Test error handling in preprocess."""
+    # Test with invalid image type
+    with pytest.raises(TypeError):
+        preprocess(None)
+
+    # Test with invalid image shape
+    with pytest.raises(ValueError):
+        preprocess(np.array([]))
+
+    # Test with invalid image dimensions
+    with pytest.raises(ValueError):
+        preprocess(np.array([[1, 2], [3, 4, 5]]))
+        
+    # Test with invalid image type
+    with pytest.raises(TypeError):
+        preprocess("not an image")
+        
+    # Test with invalid image shape
+    with pytest.raises(ValueError):
+        preprocess(np.array([[]]))
+
+
 def test_merge_overlapping_rectangles_validation_error():
     """Test that merge_overlapping_rectangles handles validation errors gracefully."""
     # Create two rectangles that would result in an invalid merged rectangle
@@ -211,3 +234,14 @@ def test_merge_overlapping_rectangles_validation_error():
     assert len(result) == 2
     assert result[0] == rect1
     assert result[1] == rect2
+
+
+def test_contours_to_rectangles_error_handling():
+    """Test error handling in contours_to_rectangles."""
+    # Test with invalid hierarchy
+    invalid_hierarchy = np.array([[[]]])
+    assert contours_to_rectangles([], invalid_hierarchy) == []
+
+    # Test with invalid contour
+    invalid_contour = np.array([[0, 0], [0, 0], [0, 0], [0, 0]])  # Too small to form a rectangle
+    assert contours_to_rectangles([invalid_contour], np.array([[[-1, -1, -1, -1]]])) == []
