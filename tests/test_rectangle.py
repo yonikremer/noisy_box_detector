@@ -50,6 +50,9 @@ def test_rectangle_creation(valid_rectangle):
     with pytest.raises(ValidationError):
         Rectangle(x=100, y=100, height=50, length=IMAGE_WIDTH+1)
 
+    # Test that middle_y calculation is correct
+    assert valid_rectangle.middle_y() == 125  # 100 + 50//2
+
 
 def test_rectangle_boundaries():
     # Test rectangle at image boundaries with minimum area
@@ -123,6 +126,14 @@ def test_rectangle_merge():
     assert merged.height == 150
     assert merged.length == 150
 
+    # Test merging identical rectangles
+    rect1 = Rectangle(x=0, y=0, height=50, length=50)
+    merged = rect1.merge(rect1)
+    assert merged.x == 0
+    assert merged.y == 0
+    assert merged.height == 50
+    assert merged.length == 50
+
 
 def test_rectangle_distance():
     rect1 = Rectangle(x=0, y=0, height=50, length=50)
@@ -171,9 +182,12 @@ def test_rectangle_intersection_area():
     rect3 = Rectangle(x=25, y=25, height=50, length=50)
     assert rect1.intersetion_area(rect3) == 625  # 25 * 25
     
-    # Test complete intersection
+    # Test complete intersection (smaller inside larger)
     rect4 = Rectangle(x=0, y=0, height=25, length=25)
     assert rect1.intersetion_area(rect4) == 625  # 25 * 25
+
+    # Test complete intersection (larger contains smaller)
+    assert rect4.intersetion_area(rect1) == 625  # Should be symmetric
 
 
 def test_rectangle_random():
@@ -187,6 +201,10 @@ def test_rectangle_random():
         assert rect.area() >= MIN_RECTANGLE_AREA
         assert rect.max_x() < IMAGE_WIDTH
         assert rect.max_y() < IMAGE_HEIGHT
+
+        # Test that random rectangles are within bounds with margin
+        assert rect.x < IMAGE_WIDTH - MIN_RECTANGLE_WIDTH
+        assert rect.y < IMAGE_HEIGHT - MIN_RECTANGLE_HEIGHT
 
 
 def test_rectangle_plot(valid_rectangle):
@@ -219,3 +237,35 @@ def test_rectangle_csv_methods(valid_rectangle):
     assert int(values[1]) == valid_rectangle.length
     assert int(values[2]) == valid_rectangle.middle_y()
     assert int(values[3]) == valid_rectangle.height 
+
+
+def test_validate_max_y():
+    # Test valid rectangle that extends to just before image height
+    rect = Rectangle(x=0, y=IMAGE_HEIGHT-51, height=50, length=50)
+    assert rect.max_y() == IMAGE_HEIGHT-1
+
+    # Test rectangle that would extend beyond image height
+    with pytest.raises(ValidationError):
+        Rectangle(x=0, y=IMAGE_HEIGHT-40, height=50, length=50)
+
+
+def test_rectangle_slice(valid_rectangle):
+    # Test that slice returns correct tuple
+    slice_tuple = valid_rectangle.slice
+    assert isinstance(slice_tuple, tuple)
+    assert len(slice_tuple) == 2
+    assert slice_tuple[0].start == valid_rectangle.y
+    assert slice_tuple[0].stop == valid_rectangle.y + valid_rectangle.height
+    assert slice_tuple[1].start == valid_rectangle.x
+    assert slice_tuple[1].stop == valid_rectangle.x + valid_rectangle.length
+
+
+def test_rectangle_hash():
+    # Test that identical rectangles have the same hash
+    rect1 = Rectangle(x=100, y=100, height=50, length=50)
+    rect2 = Rectangle(x=100, y=100, height=50, length=50)
+    assert hash(rect1) == hash(rect2)
+
+    # Test that different rectangles have different hashes
+    rect3 = Rectangle(x=101, y=100, height=50, length=50)
+    assert hash(rect1) != hash(rect3) 
