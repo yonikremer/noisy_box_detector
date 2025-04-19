@@ -50,16 +50,20 @@ class SignalParameters:
             Tuple of start and end sample indices
         """
         signal_duration_ms = np.random.exponential(self.mean_signal_duration_ms)
-        max_start_time_ms = self.snapshot_duration_ms
+        # Ensure signal can fit within snapshot by limiting start time
+        max_start_time_ms = max(0, self.snapshot_duration_ms - signal_duration_ms)
         start_time_ms = random.uniform(0, max_start_time_ms)
 
         # Convert times to sample indices
         start_sample = int(start_time_ms * self.sample_rate / MILLISECONDS_PER_SECOND)
         end_sample = int(
-            min(start_time_ms + signal_duration_ms, self.snapshot_duration_ms)
+            (start_time_ms + signal_duration_ms)
             * self.sample_rate
             / MILLISECONDS_PER_SECOND
         )
+        
+        # Ensure end sample doesn't exceed snapshot length
+        end_sample = min(end_sample, self.samples_in_snapshot)
 
         return start_sample, end_sample
 
