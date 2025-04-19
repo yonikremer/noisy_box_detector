@@ -8,7 +8,8 @@ from core import (
     contours_to_rectangles,
     preprocess,
     MAX_DISTANCE_BETWEEN_RECTANGLES,
-    MAX_RECTANGLE_AREA_INCREMENT_RATIO,
+    MAX_RECTANGLE_HEIGHT,
+    MIN_RECTANGLE_WIDTH,
     Rectangle
 )
 
@@ -24,13 +25,11 @@ def sample_rectangles():
 
 @pytest.fixture
 def sample_image():
-    # Create a 100x100 black image
-    image = np.zeros((100, 100), dtype=np.uint8)
+    # Create a 100x100 light gray image
+    image = np.random.normal(50, 10, (100, 100))
     # Add some rectangles
     cv2.rectangle(image, (10, 10), (30, 30), 255, -1)  # Area = 400
     cv2.rectangle(image, (40, 40), (60, 60), 255, -1)  # Area = 400
-    # Add some noise
-    image[70:80, 70:80] = 128
     return image
 
 
@@ -104,6 +103,7 @@ def test_merge_overlapping_rectangles_complex_cases():
 
 
 def test_contours_to_rectangles(sample_image):
+    sample_image = preprocess(sample_image)
     # Find contours in the sample image
     contours, hierarchy = cv2.findContours(
         sample_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
@@ -191,4 +191,19 @@ def test_preprocess_edge_cases():
     checker = np.zeros((100, 100), dtype=np.uint8)
     checker[::2, ::2] = 255  # Create checkerboard pattern
     processed = preprocess(checker)
-    assert processed.dtype == np.uint8 
+    assert processed.dtype == np.uint8
+
+
+def test_merge_overlapping_rectangles_validation_error():
+    """Test that merge_overlapping_rectangles handles validation errors gracefully."""
+    # Create two rectangles that would result in an invalid merged rectangle
+    rect1 = Rectangle(x=0, y=0, height=20, length=20)
+    rect2 = Rectangle(x=rect1.max_x() + 1, y=rect1.max_y() + 1, height=MAX_RECTANGLE_HEIGHT, length=MIN_RECTANGLE_WIDTH)
+    
+    # The function should handle the validation error and return the original rectangles
+    result = merge_overlapping_rectangles([rect1, rect2])
+    
+    # Should return both rectangles unchanged
+    assert len(result) == 2
+    assert result[0] == rect1
+    assert result[1] == rect2 
