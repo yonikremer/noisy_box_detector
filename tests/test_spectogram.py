@@ -206,4 +206,59 @@ def test_spectrogram_pixel_ratio(sample_rate, duration_ms, freq):
         # Find the maximum power in the spectrogram
         max_freq_bin = np.argmax(np.mean(np.abs(spectrogram), axis=1))
         assert abs(max_freq_bin - freq_bin) <= 1, \
-            f"Expected peak frequency around bin {freq_bin}, got {max_freq_bin}" 
+            f"Expected peak frequency around bin {freq_bin}, got {max_freq_bin}"
+
+
+def test_empty_signal():
+    """Test behavior with an empty signal."""
+    # Create an empty complex signal
+    empty_signal = np.array([], dtype=np.complex128)
+    
+    # Only mock the plotting function to avoid displaying the plot during tests
+    with patch('spectogram.plot_spectrogram') as mock_plot:
+        # This should raise a ValueError because the signal is empty
+        with pytest.raises(ValueError):
+            create_spectrogram(empty_signal, 1000)
+
+
+def test_signal_smaller_than_window():
+    """Test behavior with a signal smaller than the window size."""
+    # Create a signal smaller than the window size
+    small_signal = np.ones(WINDOW_SIZE // 2, dtype=np.complex128)
+    
+    # Only mock the plotting function to avoid displaying the plot during tests
+    with patch('spectogram.plot_spectrogram') as mock_plot:
+        create_spectrogram(small_signal, 1000)
+        
+        # Get the actual spectrogram data from the mock call
+        mock_call_args = mock_plot.call_args[0]
+        frequencies, spectrogram, times = mock_call_args
+        
+        # Verify that the spectrogram has the expected dimensions
+        # For a signal smaller than the window size, we should still get at least one time bin
+        assert spectrogram.shape[1] >= 1, "Expected at least one time bin"
+
+
+def test_nyquist_frequency():
+    """Test behavior with a signal at the Nyquist frequency."""
+    # Create a signal at the Nyquist frequency
+    sample_rate = 1000
+    nyquist_freq = sample_rate / 2
+    t = np.linspace(0, 1, 10000)
+    signal = np.exp(2j * np.pi * nyquist_freq * t)
+
+    # Only mock the plotting function to avoid displaying the plot during tests
+    with patch('spectogram.plot_spectrogram') as mock_plot:
+        create_spectrogram(signal, sample_rate)
+
+        # Get the actual spectrogram data from the mock call
+        mock_call_args = mock_plot.call_args[0]
+        frequencies, spectrogram, times = mock_call_args
+
+        # Verify that frequencies close to the Nyquist frequency are included
+        # We use a small tolerance to account for discretization
+        tolerance = 0.1
+        assert any(abs(f - nyquist_freq) < tolerance for f in frequencies), \
+            "Frequencies close to Nyquist frequency should be included"
+        assert any(abs(f + nyquist_freq) < tolerance for f in frequencies), \
+            "Frequencies close to negative Nyquist frequency should be included" 
