@@ -12,6 +12,25 @@ HOP_SIZE = WINDOW_SIZE // 2  # 50% overlap (8192 samples)
 WINDOW_TYPE = "hann"  # Hann window type
 FFT_MODE = "centered"  # FFT mode for ShortTimeFFT
 
+def calculate_time_bins(signal_length: int) -> int:
+    """
+    Calculate the expected number of time bins in a spectrogram.
+    
+    The formula accounts for:
+    - Window size and hop size
+    - Need to cover the entire signal
+    - Each hop moves by HOP_SIZE samples
+    - Need to include both start and end points
+    - Need to account for the initial window size
+    
+    Args:
+        signal_length: Length of the input signal in samples
+        
+    Returns:
+        Number of expected time bins in the spectrogram
+    """
+    return int(np.ceil((signal_length + WINDOW_SIZE - HOP_SIZE) / HOP_SIZE))
+
 def create_spectrogram(snapshot: np.ndarray, sample_rate: int):
     if not isinstance(snapshot, np.ndarray):
         raise TypeError("Input snapshot must be a numpy array.")
