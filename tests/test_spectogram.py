@@ -8,7 +8,7 @@ from unittest.mock import patch, MagicMock
 
 # Add the parent directory to the path so we can import the module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from spectogram import create_spectrogram, plot_spectrogram
+from spectogram import create_spectrogram, plot_spectrogram, WINDOW_SIZE, HOP_SIZE, WINDOW_TYPE, FFT_MODE
 
 
 def test_create_spectrogram_invalid_input():
@@ -49,7 +49,8 @@ def test_create_spectrogram_valid_input(mock_plot, mock_stft, monkeypatch):
     mock_stft.assert_called_once()
     call_args = mock_stft.call_args[1]
     assert call_args['fs'] == 1000
-    assert call_args['fft_mode'] == 'centered'
+    assert call_args['fft_mode'] == FFT_MODE
+    assert call_args['hop'] == HOP_SIZE
     
     # Verify that spectrogram was called with the signal
     mock_stft_instance.spectrogram.assert_called_once_with(complex_signal)
@@ -162,19 +163,23 @@ def test_spectrogram_pixel_ratio():
         mock_stft_instance = MagicMock()
         mock_stft.return_value = mock_stft_instance
         
-        # Mock the spectrogram method to return a known size
-        mock_spectrogram = np.zeros((1024, 4096))  # Typical spectrogram size
+        # For testing purposes, we'll use a fixed spectrogram size
+        # In a real spectrogram, the size would be calculated based on signal length and hop size
+        # But for this test, we'll use a fixed size to verify the ratio
+        mock_spectrogram_width = 4096  # Fixed width for testing
+        mock_spectrogram_height = WINDOW_SIZE // 2 + 1  # Typical height based on window size
+        mock_spectrogram = np.zeros((mock_spectrogram_height, mock_spectrogram_width))
         mock_stft_instance.spectrogram.return_value = mock_spectrogram
         
         # Mock the frequency and time axes
-        mock_stft_instance.f = np.linspace(-50000, 50000, 1024)
-        mock_stft_instance.t.return_value = np.linspace(0, duration_ms/1000, 4096)
+        mock_stft_instance.f = np.linspace(-50000, 50000, mock_spectrogram_height)
+        mock_stft_instance.t.return_value = np.linspace(0, duration_ms/1000, mock_spectrogram_width)
         
         # Call the function
         create_spectrogram(complex_signal, sample_rate)
         
         # Calculate the ratio
-        samples_per_pixel = signal_length / mock_spectrogram.shape[1]
+        samples_per_pixel = signal_length / mock_spectrogram_width
         expected_ratio = 24.4  # 100,000 samples / 4096 pixels ≈ 24.4
         
         # Allow for some small numerical differences

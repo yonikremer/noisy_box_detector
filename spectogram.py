@@ -6,6 +6,11 @@ import matplotlib.pyplot as plt
 from scipy.signal import ShortTimeFFT, get_window
 import numpy as np
 
+# Constants for spectrogram generation
+WINDOW_SIZE = 2**14  # Define the window size (16384 samples)
+HOP_SIZE = WINDOW_SIZE // 2  # 50% overlap (8192 samples)
+WINDOW_TYPE = "hann"  # Hann window type
+FFT_MODE = "centered"  # FFT mode for ShortTimeFFT
 
 def create_spectrogram(snapshot: np.ndarray, sample_rate: int):
     if not isinstance(snapshot, np.ndarray):
@@ -13,12 +18,10 @@ def create_spectrogram(snapshot: np.ndarray, sample_rate: int):
     if not np.iscomplexobj(snapshot):
         raise ValueError("Input snapshot must be a numpy array of complex values.")
 
-    window_size = 2**14  # Define the window size
-    window = get_window("hann", window_size)  # Hann window with size 2^14
-    hop_size = window_size // 2  # 50% overlap
+    window = get_window(WINDOW_TYPE, WINDOW_SIZE)  # Hann window with size 2^14
 
     stft = ShortTimeFFT(
-        win=window, hop=hop_size, fs=sample_rate, fft_mode="centered"
+        win=window, hop=HOP_SIZE, fs=sample_rate, fft_mode=FFT_MODE
     )  # Initialize ShortTimeFFT
     spectrogram = stft.spectrogram(snapshot)  # Compute the spectrogram
     frequencies = stft.f  # Get frequency axis
