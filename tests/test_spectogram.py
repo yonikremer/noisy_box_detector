@@ -156,32 +156,50 @@ def test_spectrogram_pixel_ratio():
     sample_rate = 1000000  # 1 MHz
     duration_ms = 100  # 100 ms
     signal_length = int(sample_rate * duration_ms / 1000)  # 100,000 samples
-    complex_signal = np.zeros(signal_length, dtype=np.complex128)
     
-    # Mock the ShortTimeFFT instance
-    with patch('spectogram.ShortTimeFFT') as mock_stft:
-        mock_stft_instance = MagicMock()
-        mock_stft.return_value = mock_stft_instance
-        
-        # For testing purposes, we'll use a fixed spectrogram size
-        # In a real spectrogram, the size would be calculated based on signal length and hop size
-        # But for this test, we'll use a fixed size to verify the ratio
-        mock_spectrogram_width = 4096  # Fixed width for testing
-        mock_spectrogram_height = WINDOW_SIZE // 2 + 1  # Typical height based on window size
-        mock_spectrogram = np.zeros((mock_spectrogram_height, mock_spectrogram_width))
-        mock_stft_instance.spectrogram.return_value = mock_spectrogram
-        
-        # Mock the frequency and time axes
-        mock_stft_instance.f = np.linspace(-50000, 50000, mock_spectrogram_height)
-        mock_stft_instance.t.return_value = np.linspace(0, duration_ms/1000, mock_spectrogram_width)
-        
-        # Call the function
+    # Create a simple test signal (complex sinusoid)
+    t = np.linspace(0, duration_ms/1000, signal_length)
+    freq = 10000  # 10 kHz
+    complex_signal = np.exp(2j * np.pi * freq * t)
+    
+    # Only mock the plotting function to avoid displaying the plot during tests
+    with patch('spectogram.plot_spectrogram') as mock_plot:
         create_spectrogram(complex_signal, sample_rate)
         
-        # Calculate the ratio
-        samples_per_pixel = signal_length / mock_spectrogram_width
-        expected_ratio = 24.4  # 100,000 samples / 4096 pixels ≈ 24.4
+        # Get the actual spectrogram data from the mock call
+        mock_call_args = mock_plot.call_args[0]
+        frequencies, spectrogram, times = mock_call_args
         
-        # Allow for some small numerical differences
-        assert abs(samples_per_pixel - expected_ratio) < 0.1, \
-            f"Expected ratio of {expected_ratio} samples per pixel, got {samples_per_pixel}" 
+        # Get the actual dimensions from the spectrogram
+        num_freq_bins, num_time_bins = spectrogram.shape
+        
+        # Calculate expected time bins
+        # The formula accounts for the window size and hop size:
+        # - We need enough hops to cover the entire signal
+        # - Each hop moves by HOP_SIZE samples
+        # - We need to include both the start and end points
+        # - We need to account for the initial window size
+        expected_time_bins = int(np.ceil((signal_length + WINDOW_SIZE - HOP_SIZE) / HOP_SIZE))
+        assert num_time_bins == expected_time_bins, \
+            f"Expected {expected_time_bins} time bins, got {num_time_bins}"
+        
+        # Verify that the time axis covers the signal duration
+        assert len(times) == num_time_bins, \
+            f"Expected {num_time_bins} time points, got {len(times)}"
+        # The time axis may extend slightly beyond the signal duration due to the window size
+        max_expected_duration = (duration_ms/1000) * (1 + WINDOW_SIZE/signal_length)
+        assert times[-1] <= max_expected_duration, \
+            f"Time axis exceeds maximum expected duration of {max_expected_duration}s"
+        
+        # Verify frequency axis
+        nyquist = sample_rate / 2
+        assert frequencies[0] >= -nyquist and frequencies[-1] <= nyquist, \
+            f"Frequencies should be within ±{nyquist} Hz"
+        
+        # Verify that the spectrogram captures the test signal frequency
+        # Find the frequency bin closest to our test frequency
+        freq_bin = np.argmin(np.abs(frequencies - freq))
+        # Find the maximum power in the spectrogram
+        max_freq_bin = np.argmax(np.mean(np.abs(spectrogram), axis=1))
+        assert abs(max_freq_bin - freq_bin) <= 1, \
+            f"Expected peak frequency around bin {freq_bin}, got {max_freq_bin}" 
