@@ -19,4 +19,4 @@ dependencies = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-v --cov=rectangle_finder" 
+addopts = "-v --cov=. --cov-report=term-missing" 
