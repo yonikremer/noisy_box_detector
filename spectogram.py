@@ -8,6 +8,8 @@ import numpy as np
 
 
 def create_spectrogram(snapshot: np.ndarray, sample_rate: int):
+    if not isinstance(snapshot, np.ndarray):
+        raise TypeError("Input snapshot must be a numpy array.")
     if not np.iscomplexobj(snapshot):
         raise ValueError("Input snapshot must be a numpy array of complex values.")
 
