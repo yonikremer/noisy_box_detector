@@ -11,16 +11,18 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from spectogram import create_spectrogram, plot_spectrogram, WINDOW_SIZE, HOP_SIZE, WINDOW_TYPE, FFT_MODE
 
 
-def test_create_spectrogram_invalid_input():
-    """Test that create_spectrogram raises ValueError for non-complex input."""
-    # Test with real-valued array
-    real_signal = np.ones(1000)
-    with pytest.raises(ValueError, match="Input snapshot must be a numpy array of complex values"):
-        create_spectrogram(real_signal, 1000)
-    
-    # Test with non-numpy input
-    with pytest.raises(TypeError, match="Input snapshot must be a numpy array."):
-        create_spectrogram([1+1j, 2+2j], 1000)
+@pytest.mark.parametrize("invalid_input,expected_error", [
+    (np.ones(1000), ValueError),
+    ([1+1j, 2+2j], TypeError),
+])
+def test_create_spectrogram_invalid_input(invalid_input, expected_error):
+    """Test that create_spectrogram raises appropriate errors for invalid input."""
+    if expected_error == ValueError:
+        with pytest.raises(ValueError, match="Input snapshot must be a numpy array of complex values"):
+            create_spectrogram(invalid_input, 1000)
+    elif expected_error == TypeError:
+        with pytest.raises(TypeError, match="Input snapshot must be a numpy array."):
+            create_spectrogram(invalid_input, 1000)
 
 
 @patch('spectogram.ShortTimeFFT')
@@ -150,16 +152,18 @@ def test_plot_spectrogram_log_scale():
         mock_colorbar.assert_called_once_with(label="Power (dB)")
 
 
-def test_spectrogram_pixel_ratio():
+@pytest.mark.parametrize("sample_rate,duration_ms,freq", [
+    (1000000, 100, 10000),  # 1 MHz, 100 ms, 10 kHz
+    (500000, 50, 5000),     # 500 kHz, 50 ms, 5 kHz
+    (2000000, 200, 20000),  # 2 MHz, 200 ms, 20 kHz
+])
+def test_spectrogram_pixel_ratio(sample_rate, duration_ms, freq):
     """Test that the ratio between spectrogram pixels and signal length is correct."""
     # Create a test signal with known length
-    sample_rate = 1000000  # 1 MHz
-    duration_ms = 100  # 100 ms
-    signal_length = int(sample_rate * duration_ms / 1000)  # 100,000 samples
+    signal_length = int(sample_rate * duration_ms / 1000)
     
     # Create a simple test signal (complex sinusoid)
     t = np.linspace(0, duration_ms/1000, signal_length)
-    freq = 10000  # 10 kHz
     complex_signal = np.exp(2j * np.pi * freq * t)
     
     # Only mock the plotting function to avoid displaying the plot during tests
