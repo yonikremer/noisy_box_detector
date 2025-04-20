@@ -146,4 +146,37 @@ def test_plot_spectrogram_log_scale():
         assert np.array_equal(data_passed, expected)
         
         # Verify that colorbar was called with the correct label
-        mock_colorbar.assert_called_once_with(label="Power (dB)") 
+        mock_colorbar.assert_called_once_with(label="Power (dB)")
+
+
+def test_spectrogram_pixel_ratio():
+    """Test that the ratio between spectrogram pixels and signal length is correct."""
+    # Create a test signal with known length
+    sample_rate = 1000000  # 1 MHz
+    duration_ms = 100  # 100 ms
+    signal_length = int(sample_rate * duration_ms / 1000)  # 100,000 samples
+    complex_signal = np.zeros(signal_length, dtype=np.complex128)
+    
+    # Mock the ShortTimeFFT instance
+    with patch('spectogram.ShortTimeFFT') as mock_stft:
+        mock_stft_instance = MagicMock()
+        mock_stft.return_value = mock_stft_instance
+        
+        # Mock the spectrogram method to return a known size
+        mock_spectrogram = np.zeros((1024, 4096))  # Typical spectrogram size
+        mock_stft_instance.spectrogram.return_value = mock_spectrogram
+        
+        # Mock the frequency and time axes
+        mock_stft_instance.f = np.linspace(-50000, 50000, 1024)
+        mock_stft_instance.t.return_value = np.linspace(0, duration_ms/1000, 4096)
+        
+        # Call the function
+        create_spectrogram(complex_signal, sample_rate)
+        
+        # Calculate the ratio
+        samples_per_pixel = signal_length / mock_spectrogram.shape[1]
+        expected_ratio = 24.4  # 100,000 samples / 4096 pixels ≈ 24.4
+        
+        # Allow for some small numerical differences
+        assert abs(samples_per_pixel - expected_ratio) < 0.1, \
+            f"Expected ratio of {expected_ratio} samples per pixel, got {samples_per_pixel}" 
