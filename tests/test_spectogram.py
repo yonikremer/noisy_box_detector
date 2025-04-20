@@ -8,7 +8,15 @@ from unittest.mock import patch, MagicMock
 
 # Add the parent directory to the path so we can import the module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from spectogram import create_spectrogram, plot_spectrogram, WINDOW_SIZE, HOP_SIZE, WINDOW_TYPE, FFT_MODE
+from spectogram import (
+    create_spectrogram,
+    plot_spectrogram,
+    WINDOW_SIZE,
+    HOP_SIZE,
+    WINDOW_TYPE,
+    FFT_MODE,
+    calculate_time_bins,
+)
 
 
 @pytest.mark.parametrize("invalid_input,expected_error", [
@@ -179,13 +187,8 @@ def test_spectrogram_pixel_ratio(sample_rate, duration_ms, freq):
         assert num_freq_bins == WINDOW_SIZE, \
             f"Expected {WINDOW_SIZE} frequency bins, got {num_freq_bins}"
         
-        # Calculate expected time bins
-        # The formula accounts for the window size and hop size:
-        # - We need enough hops to cover the entire signal
-        # - Each hop moves by HOP_SIZE samples
-        # - We need to include both the start and end points
-        # - We need to account for the initial window size
-        expected_time_bins = int(np.ceil((signal_length + WINDOW_SIZE - HOP_SIZE) / HOP_SIZE))
+        # Calculate expected time bins using the new function
+        expected_time_bins = calculate_time_bins(signal_length)
         assert num_time_bins == expected_time_bins, \
             f"Expected {expected_time_bins} time bins, got {num_time_bins}"
         
@@ -263,4 +266,48 @@ def test_nyquist_frequency():
         assert any(abs(f - nyquist_freq) < tolerance for f in frequencies), \
             "Frequencies close to Nyquist frequency should be included"
         assert any(abs(f + nyquist_freq) < tolerance for f in frequencies), \
-            "Frequencies close to negative Nyquist frequency should be included" 
+            "Frequencies close to negative Nyquist frequency should be included"
+
+
+@pytest.mark.parametrize("signal_length", [
+    WINDOW_SIZE//2,  # Minimum allowed length
+    WINDOW_SIZE,     # Exactly one window
+    WINDOW_SIZE*2,   # Two windows
+    WINDOW_SIZE*3,   # Three windows
+    123456,         # Arbitrary length > minimum
+])
+def test_calculate_time_bins_accuracy(signal_length):
+    """Test that calculate_time_bins correctly predicts the actual number of time bins in the spectrogram."""
+    # Create a test signal of the specified length
+    test_signal = np.ones(signal_length, dtype=np.complex128)
+    
+    # Calculate the predicted number of time bins
+    predicted_bins = calculate_time_bins(signal_length)
+    
+    # Generate actual spectrogram and get its dimensions
+    with patch('spectogram.plot_spectrogram') as mock_plot:
+        create_spectrogram(test_signal, 1000)  # Sample rate doesn't affect bin count
+        
+        # Get the actual spectrogram data from the mock call
+        mock_call_args = mock_plot.call_args[0]
+        _, spectrogram, times = mock_call_args
+        
+        # Get the actual number of time bins
+        actual_bins = spectrogram.shape[1]
+        
+        # Verify that our prediction matches reality
+        assert predicted_bins == actual_bins, \
+            f"Predicted {predicted_bins} time bins but got {actual_bins} for signal length {signal_length}"
+        
+        # Also verify that the time axis length matches
+        assert len(times) == actual_bins, \
+            f"Time axis length {len(times)} doesn't match number of bins {actual_bins}"
+
+
+def test_calculate_time_bins_short_signal():
+    """Test that very short signals raise an appropriate error."""
+    # Try to create a spectrogram with a signal shorter than WINDOW_SIZE/2
+    short_signal = np.ones(WINDOW_SIZE//2 - 1, dtype=np.complex128)
+    
+    with pytest.raises(ValueError, match=r".*must be >= ceil\(m_num/2\).*"):
+        create_spectrogram(short_signal, 1000) 
