@@ -90,15 +90,13 @@ class Modulation(ABC):
         Returns:
             Complex modulated signal
         """
-        start_sample, end_sample = self.params.generate_signal_timing()
         signal = np.zeros_like(self.params.time_signal, dtype=np.complex128)
 
         # Symbol duration based on bandwidth
         samples_per_symbol = int(self.params.sample_rate / self.params.bandwidth)
 
-        for start_idx in range(start_sample, end_sample, samples_per_symbol):
-            end_idx = min(start_idx + samples_per_symbol, end_sample)
-
+        for start_idx in range(self.params.start_sample, self.params.end_sample, samples_per_symbol):
+            end_idx = min(start_idx + samples_per_symbol, self.params.end_sample)
             symbol = self.generate_symbol(start_idx, end_idx)
             signal[start_idx:end_idx] = symbol
             self.apply_fade_window(signal, start_idx, end_idx, self.params.sample_rate)

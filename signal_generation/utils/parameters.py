@@ -6,6 +6,8 @@ from datetime import timedelta
 import numpy as np
 from scipy.signal import butter, filtfilt
 
+from core.rectangle import Rectangle
+
 
 MILLISECONDS_PER_SECOND = 1000
 
@@ -19,6 +21,13 @@ class SignalParameters:
     carrier_frequency: float  # Hz
     bandwidth: float  # Hz
     mean_signal_duration_ms: float  # Mean duration for exponential distribution
+    
+    def to_rectangle(self) -> Rectangle:
+        return Rectangle(
+            self.carrier_frequency,
+            self.bandwidth,
+            self.mean_signal_duration_ms,
+        )
 
     def __post_init__(self):
         """Pre-compute common values used in signal generation."""
@@ -41,8 +50,9 @@ class SignalParameters:
         self.two_pi_time_signal = 2 * np.pi * self.time_signal
         # Pre-compute carrier phase for PSK/QAM
         self.carrier_phase = self.two_pi_time_signal * self.carrier_frequency
+        self.start_sample, self.end_sample = self._generate_signal_timing()
 
-    def generate_signal_timing(self) -> tuple[int, int]:
+    def _generate_signal_timing(self) -> tuple[int, int]:
         """
         Generate start and end sample indices for a signal within a snapshot.
 

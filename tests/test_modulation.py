@@ -187,7 +187,8 @@ def test_generate_signal_invalid_timing():
 
     mod = ExampleModulation(params)
     # Mock generate_signal_timing to return invalid indices
-    mod.params.generate_signal_timing = lambda: (10, 5)
+    mod.params.start_sample = 10
+    mod.params.end_sample = 5
     signal = mod.generate_signal()
     assert np.array_equal(
         signal, np.zeros_like(params.time_signal, dtype=np.complex128)
