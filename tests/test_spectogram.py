@@ -176,6 +176,8 @@ def test_spectrogram_pixel_ratio(sample_rate, duration_ms, freq):
         
         # Get the actual dimensions from the spectrogram
         num_freq_bins, num_time_bins = spectrogram.shape
+        assert num_freq_bins == WINDOW_SIZE, \
+            f"Expected {WINDOW_SIZE} frequency bins, got {num_freq_bins}"
         
         # Calculate expected time bins
         # The formula accounts for the window size and hop size:
